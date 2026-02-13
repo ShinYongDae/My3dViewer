@@ -1,0 +1,12 @@
+Debug/
+ipch/
+x64/
+My3dViewer.sdf
+My3dViewer.VC.db
+My3dViewer/Debug/
+My3dViewer/Release/
+My3dViewer/x64/
+.vs/
+My3dViewer/ItsConverteraps
+
+
