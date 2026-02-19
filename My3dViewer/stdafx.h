@@ -35,6 +35,12 @@
 
 
 
+#define MAX_RECIPE_STEPS					30
+#define MAX_DATA_LENGTH						1024
+
+#define DEFECT_FILE_RST						0
+#define DEFECT_FILE_ERT						1
+
 
 
 

@@ -188,17 +188,38 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AutoVariableControl.h" />
+    <ClInclude Include="ColorTable.h" />
     <ClInclude Include="Dlg3DViewer.h" />
+    <ClInclude Include="Entities.h" />
+    <ClInclude Include="GeoDataType.h" />
+    <ClInclude Include="glext.h" />
+    <ClInclude Include="glInfo.h" />
+    <ClInclude Include="GlobalDefine.h" />
+    <ClInclude Include="GlobalDefineAOR.h" />
+    <ClInclude Include="GvisMath.h" />
     <ClInclude Include="My3dViewer.h" />
     <ClInclude Include="My3dViewerDlg.h" />
+    <ClInclude Include="OpenGLDraw.h" />
+    <ClInclude Include="OpenGLFBO.h" />
+    <ClInclude Include="OpenGLFontCam.h" />
+    <ClInclude Include="OpenGLView.h" />
+    <ClInclude Include="OpenGLViewEx.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dlg3DViewer.cpp" />
+    <ClCompile Include="glInfo.cpp" />
+    <ClCompile Include="GvisMath.cpp" />
     <ClCompile Include="My3dViewer.cpp" />
     <ClCompile Include="My3dViewerDlg.cpp" />
+    <ClCompile Include="OpenGLDraw.cpp" />
+    <ClCompile Include="OpenGLFBO.cpp" />
+    <ClCompile Include="OpenGLFontCam.cpp" />
+    <ClCompile Include="OpenGLView.cpp" />
+    <ClCompile Include="OpenGLViewEx.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

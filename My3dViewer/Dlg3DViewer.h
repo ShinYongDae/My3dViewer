@@ -1,11 +1,14 @@
 #pragma once
 
+#include "OpenGLViewEx.h"
 
 // CDlg3DViewer 대화 상자입니다.
 
 class CDlg3DViewer : public CDialog
 {
 	DECLARE_DYNAMIC(CDlg3DViewer)
+
+	COpenGLViewEx* m_pView;
 
 public:
 	CDlg3DViewer(CWnd* pParent = NULL);   // 표준 생성자입니다.
