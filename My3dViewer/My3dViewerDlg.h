@@ -4,17 +4,30 @@
 
 #pragma once
 
+//opencv header file include
+#include <opencv2/opencv.hpp>
+
 #include "Dlg3DViewer.h"
+#include "afxwin.h"
+
 
 // CMy3dViewerDlg 대화 상자
 class CMy3dViewerDlg : public CDialog
 {
+	cv::Mat m_matRainbow;
+	cv::Mat m_Image;
+	CRect m_rectResult;
+
 	BOOL FileBrowse(CString& sPath);
+	void Refresh();
+	void RefreshDlg();
+	void DrawMat(HDC hDC, cv::Mat& img);
+	void DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh);
 
 // 생성입니다.
 public:
 	CMy3dViewerDlg(CWnd* pParent = NULL);	// 표준 생성자입니다.
-
+	~CMy3dViewerDlg();
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_MY3DVIEWER_DIALOG };
@@ -40,4 +53,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnBnClickedButton1();
+	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
+	afx_msg void OnMove(int x, int y);
+	CStatic m_Pic;
 };

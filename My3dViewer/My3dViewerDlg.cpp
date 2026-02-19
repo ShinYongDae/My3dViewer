@@ -11,6 +11,8 @@
 #define new DEBUG_NEW
 #endif
 
+//using namespace std;
+
 
 // 응용 프로그램 정보에 사용되는 CAboutDlg 대화 상자입니다.
 
@@ -55,9 +57,18 @@ CMy3dViewerDlg::CMy3dViewerDlg(CWnd* pParent /*=NULL*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
+CMy3dViewerDlg::~CMy3dViewerDlg()
+{
+	if (m_viewer.GetSafeHwnd())
+	{
+		m_viewer.CloseWindow();
+	}
+}
+
 void CMy3dViewerDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_VIEW, m_Pic);
 }
 
 BEGIN_MESSAGE_MAP(CMy3dViewerDlg, CDialog)
@@ -65,6 +76,8 @@ BEGIN_MESSAGE_MAP(CMy3dViewerDlg, CDialog)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BUTTON1, &CMy3dViewerDlg::OnBnClickedButton1)
+	ON_WM_SHOWWINDOW()
+	ON_WM_MOVE()
 END_MESSAGE_MAP()
 
 
@@ -100,6 +113,9 @@ BOOL CMy3dViewerDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
+	m_Pic.GetWindowRect(m_rectResult);
+	m_viewer.Create(IDD_DLG_3D, this);
+	m_matRainbow = cv::imread("C:/AorSet/colorscale_rainbow.jpg", cv::IMREAD_UNCHANGED);
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -139,10 +155,12 @@ void CMy3dViewerDlg::OnPaint()
 
 		// 아이콘을 그립니다.
 		dc.DrawIcon(x, y, m_hIcon);
+
 	}
 	else
 	{
 		CDialog::OnPaint();
+		Refresh();
 	}
 }
 
@@ -215,5 +233,127 @@ void CMy3dViewerDlg::OnBnClickedButton1()
 	{
 		AfxMessageBox(_T("Error : 파일을 찾지못했습니다."));
 		return;
+	}
+}
+
+
+void CMy3dViewerDlg::OnShowWindow(BOOL bShow, UINT nStatus)
+{
+	CDialog::OnShowWindow(bShow, nStatus);
+
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	if (bShow)
+	{
+	}
+}
+
+void CMy3dViewerDlg::OnMove(int x, int y)
+{
+	CDialog::OnMove(x, y);
+
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	Refresh();
+}
+
+void CMy3dViewerDlg::Refresh()
+{
+	RefreshDlg();
+}
+
+void CMy3dViewerDlg::RefreshDlg()
+{
+	if (m_viewer.GetSafeHwnd())
+	{
+		CRect rtForm, rtViewer, rtDlg;
+		this->GetWindowRect(&rtForm);
+		int nHeithtSystemBar = GetSystemMetrics(SM_CYCAPTION);
+		int nWidthFrameEdgeX = GetSystemMetrics(SM_CXPADDEDBORDER) * 2;
+		int nWidthFrameEdgeY = GetSystemMetrics(SM_CYEDGE) * 3 + GetSystemMetrics(SM_CYBORDER) * 2;
+		int OffsetY = nHeithtSystemBar + nWidthFrameEdgeY;
+		int OffsetX = nWidthFrameEdgeX;
+		GetDlgItem(IDC_VIEW)->GetWindowRect(&rtViewer);
+		ScreenToClient(&rtViewer);
+
+		//m_viewer.GetClientRect(rtDlg);
+		m_viewer.GetWindowRect(rtDlg);
+		int nWidthDlg = rtDlg.Width();
+		int nHeightDlg = rtDlg.Height();
+		rtDlg.left = rtForm.left + rtViewer.left + OffsetX;
+		rtDlg.top = rtForm.top + rtViewer.top + OffsetY;
+		m_viewer.SetWindowPos(NULL, rtDlg.left, rtDlg.top, nWidthDlg, nHeightDlg, SWP_NOZORDER | SWP_NOACTIVATE);
+		m_viewer.ShowWindow(SW_SHOW);
+
+		cv::resize(m_matRainbow, m_Image, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
+		CDC* pDCResult = m_Pic.GetDC();
+		if (!m_Image.empty())
+		{
+			DrawMat(pDCResult->m_hDC, m_Image);
+		}
+		ReleaseDC(pDCResult);
+	}
+}
+
+void CMy3dViewerDlg::DrawMat(HDC hDC, cv::Mat& img)
+{
+	CV_Assert(!img.empty() && hDC != NULL);
+	int ws = (img.cols + 3) & ~3;
+	DrawMat(hDC, img, 0, 0, ws, img.rows);
+}
+
+void CMy3dViewerDlg::DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh)
+{
+	CV_Assert(!img.empty() && hDC != NULL);
+
+	int bpp = 8 * img.elemSize();
+	CV_Assert((bpp == 8 || bpp == 24 || bpp == 32));
+
+	int padding = 0;
+	if (bpp < 32) padding = 4 - (img.cols % 4);
+	if (padding == 4) padding = 0;
+
+	if (padding > 0 || img.isContinuous() == false) {
+		cv::copyMakeBorder(img, img, 0, 0, 0, padding, cv::BORDER_CONSTANT, 0);
+	}
+
+	uchar buffer[sizeof(BITMAPINFO) + 255 * sizeof(RGBQUAD)];
+	BITMAPINFO* binfo = (BITMAPINFO*)buffer;
+
+	BITMAPINFOHEADER* bmih = &(binfo->bmiHeader);
+	memset(bmih, 0, sizeof(*bmih));
+	bmih->biSize = sizeof(BITMAPINFOHEADER);
+	bmih->biWidth = img.cols;
+	bmih->biHeight = -abs(img.rows);
+	bmih->biPlanes = 1;
+	bmih->biBitCount = (unsigned short)bpp;
+	bmih->biCompression = BI_RGB;
+
+	if (img.channels() == 1) {
+		RGBQUAD* palette = binfo->bmiColors;
+		for (int i = 0; i < 256; i++) {
+			palette[i].rgbBlue = palette[i].rgbGreen = palette[i].rgbRed = (uchar)i;
+			palette[i].rgbReserved = 0;
+		}
+	}
+
+	if (img.cols == dw && img.rows == dh) {
+		::SetDIBitsToDevice(hDC,	// hdc
+			x,				// DestX
+			y,				// DestY
+			img.cols,		// nSrcWidth
+			img.rows,		// nSrcHeight
+			0,				// SrcX
+			0,				// SrcY
+			0,				// nStartScan
+			img.rows,		// nNumScans
+			img.data,		// lpBits
+			binfo,			// lpBitsInfo
+			DIB_RGB_COLORS);	// wUsage
+	}
+	else {
+		SetStretchBltMode(hDC, COLORONCOLOR);
+		::StretchDIBits(hDC,
+			x, y, dw, dh,
+			0, 0, img.cols, img.rows,
+			img.data, binfo, DIB_RGB_COLORS, SRCCOPY);
 	}
 }

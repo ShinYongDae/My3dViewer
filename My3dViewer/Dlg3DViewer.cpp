@@ -32,3 +32,17 @@ END_MESSAGE_MAP()
 
 
 // CDlg3DViewer 메시지 처리기입니다.
+
+
+BOOL CDlg3DViewer::OnInitDialog()
+{
+	CDialog::OnInitDialog();
+
+	// TODO:  여기에 추가 초기화 작업을 추가합니다.
+	CRect rt;
+	GetDlgItem(IDC_STATIC_VIEW)->GetWindowRect(rt);
+	ScreenToClient(rt);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
+}
