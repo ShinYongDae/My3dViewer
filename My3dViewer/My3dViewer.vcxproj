@@ -205,6 +205,7 @@
     <ClInclude Include="OpenGLFontCam.h" />
     <ClInclude Include="OpenGLView.h" />
     <ClInclude Include="OpenGLViewEx.h" />
+    <ClInclude Include="ReferenceData.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -220,6 +221,7 @@
     <ClCompile Include="OpenGLFontCam.cpp" />
     <ClCompile Include="OpenGLView.cpp" />
     <ClCompile Include="OpenGLViewEx.cpp" />
+    <ClCompile Include="ReferenceData.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

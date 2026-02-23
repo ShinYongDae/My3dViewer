@@ -14,11 +14,36 @@ IMPLEMENT_DYNAMIC(CDlg3DViewer, CDialog)
 CDlg3DViewer::CDlg3DViewer(CWnd* pParent /*=NULL*/)
 	: CDialog(IDD_DLG_3D, pParent)
 {
-
+	m_nIndexOfRefer = 0;
+	for (int i = 0; i < REFER_BUFFER; i++)
+	{
+		m_pReferenceData[i] = NULL;
+	}
 }
 
 CDlg3DViewer::~CDlg3DViewer()
 {
+	m_pView->MakeCurrent();
+
+	if (this->GetSafeHwnd())
+	{
+		if (m_pView)
+			m_pView->DestroyWindow();
+	}
+
+	if (m_pView)
+		delete m_pView;
+
+	m_pView = nullptr;
+
+	for (int i = 0; i < REFER_BUFFER; i++)
+	{
+		if (m_pReferenceData[i])
+		{
+			delete m_pReferenceData[i];
+			m_pReferenceData[i] = NULL;
+		}
+	}
 }
 
 void CDlg3DViewer::DoDataExchange(CDataExchange* pDX)
@@ -43,7 +68,26 @@ BOOL CDlg3DViewer::OnInitDialog()
 	GetDlgItem(IDC_STATIC_VIEW)->GetWindowRect(rt);
 	ScreenToClient(rt);
 
+	m_pView = new COpenGLViewEx();
+	m_pView->m_bMessageSendMode = 1;
+	m_pView->Create(NULL, NULL, WS_OVERLAPPED | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_VISIBLE, rt, this, 0);
+	m_pView->SetCoordinate(IDC_STATIC_VIEW, this, CdSize(686, 1000), CdPoint(-500, -250), CdPoint(0, 0));
+
+	m_pView->MakeCurrent();
+	m_pView->SetBackGroundColor(BLACK);
+
+	CReferenceData *pRefer = m_pReferenceData[m_nIndexOfRefer];
+	if(pRefer)
+		wglShareLists(pRefer->m_pOpenGLView->m_hRC, pRefer->m_pOpenGLView->m_hRC);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
+}
+
+void CDlg3DViewer::InitReference(int nIndex, CWnd *pView, CWnd *pViewPiece, CWnd *pViewMask)
+{
+	if (!m_pReferenceData[nIndex])
+	{
+		m_pReferenceData[nIndex] = new CReferenceData(pView, pViewPiece, pViewMask, this, nIndex);
+	}
 }

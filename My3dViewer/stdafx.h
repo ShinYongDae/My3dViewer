@@ -41,6 +41,7 @@
 #define DEFECT_FILE_RST						0
 #define DEFECT_FILE_ERT						1
 
+#define REFER_BUFFER						2
 
 
 
