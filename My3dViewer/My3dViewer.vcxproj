@@ -189,6 +189,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AutoVariableControl.h" />
+    <ClInclude Include="C3DModel.h" />
     <ClInclude Include="ColorTable.h" />
     <ClInclude Include="Dlg3DViewer.h" />
     <ClInclude Include="Entities.h" />
@@ -211,6 +212,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="C3DModel.cpp" />
     <ClCompile Include="Dlg3DViewer.cpp" />
     <ClCompile Include="glInfo.cpp" />
     <ClCompile Include="GvisMath.cpp" />

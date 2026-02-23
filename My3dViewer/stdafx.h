@@ -42,6 +42,7 @@
 #define DEFECT_FILE_ERT						1
 
 #define REFER_BUFFER						2
+#define _3D_RESOLUTION						0.00079
 
 
 
