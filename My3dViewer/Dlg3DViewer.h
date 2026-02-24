@@ -5,6 +5,19 @@
 #include "C3DModel.h"
 
 // CDlg3DViewer 대화 상자입니다.
+struct stTagZygoXYZ
+{
+	int nColY, nRowX;
+	float fMicronZ;
+};
+typedef CArray<stTagZygoXYZ, stTagZygoXYZ> CArZygoXYZ;
+
+struct stTagZygoInfo3D
+{
+	double dResMicronH, dResMicronV;
+	int nTotalPhaseData, nSizeColY, nSizeRowX;
+	CArZygoXYZ m_arZygoXYZ;
+};
 
 class CDlg3DViewer : public CDialog
 {
@@ -15,9 +28,14 @@ class CDlg3DViewer : public CDialog
 	int m_nIndexOfRefer;
 	SSR3DData m_st3D;
 	cv::Mat m_matrixZ;
+	stTagZygoInfo3D m_stZygoInfo3D;
 
 	float GetDepthAvg(cv::Mat &matrixZ);
 	cv::Mat calcGrayHist(const cv::Mat& img);
+	CString ExtractInfo(CString sPath);
+	TCHAR* StringToTCHAR(CString str);
+	void StringToTCHAR(CString str, TCHAR* tszStr);
+	void RemoveAllZygoXYZ();
 
 public:
 	CDlg3DViewer(CWnd* pParent = NULL);   // 표준 생성자입니다.

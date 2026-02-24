@@ -27,6 +27,8 @@ CDlg3DViewer::CDlg3DViewer(CWnd* pParent /*=NULL*/)
 
 CDlg3DViewer::~CDlg3DViewer()
 {
+	RemoveAllZygoXYZ();
+
 	m_pView->MakeCurrent();
 
 	if (this->GetSafeHwnd())
@@ -130,11 +132,163 @@ SSR3DData* CDlg3DViewer::Get3DData()
 	return &m_st3D;
 }
 
+CString CDlg3DViewer::ExtractInfo(CString sPath)
+{
+	CString sLine, sData = _T("");
+	CStdioFile stdfile;	// Text로 파일을 ofen. (Data format : char형)
+	if (!stdfile.Open(sPath, CFile::modeRead | CFile::shareDenyNone, NULL))
+	{
+		AfxMessageBox(_T("Fail to load Info."));
+		return sData;
+	}
+
+	RemoveAllZygoXYZ();
+
+	BOOL bExist = TRUE;
+	CString str = _T("");
+	int nLine = 0, nCol = 0;
+	TCHAR seps[] = _T(" ");
+	TCHAR *token;
+	TCHAR tszStr[MAX_PATH];
+	CString sResH, sResV;
+	BOOL bPhaseData = FALSE;
+	int nColY, nRowX;
+	float fMicronZ;
+	int nStLinePhaseData = 0, nEdLinePhaseData = 0;
+	int nPrevLineColY0 = 0, nLinesColY = 0, nLinesRowX = 0;
+
+	while (bExist)
+	{
+		bExist = stdfile.ReadString(str);
+		if (bExist)
+		{
+			nLine++;
+
+			if (bPhaseData)
+			{
+				if (str == "#")
+				{
+					nEdLinePhaseData = nLine - 1;
+					break;
+				}
+
+				StringToTCHAR(str, tszStr);
+				token = _tcstok(tszStr, seps); //문자열을 기준에 따라 token에 임시 저장한다.
+				while (token != NULL)
+				{
+					nCol++;
+					token = _tcstok(NULL, seps);
+
+					if (nCol == 1)
+						nColY = _ttoi(token);
+					else if(nCol == 2)
+						nRowX = _ttoi(token);
+					else if (nCol == 3)
+						fMicronZ = _tstof(token);
+
+					token = _tcstok(NULL, seps);
+
+					if (!nColY)
+					{
+						if (!nPrevLineColY0)
+							nPrevLineColY0 = nLine;
+						else if (!nLinesColY)
+							nLinesColY = nLine - nPrevLineColY0;
+					}
+				}
+				nCol = 0;
+
+				stTagZygoXYZ _xyz;
+				m_stZygoInfo3D.m_arZygoXYZ.Add(_xyz);
+			}
+			else if (nLine == 8)
+			{
+				StringToTCHAR(str, tszStr);
+				token = _tcstok(tszStr, seps); //문자열을 기준에 따라 token에 임시 저장한다.
+				while (token != NULL)
+				{
+					nCol++;
+					if (nCol == 3)
+					{
+						sResH.Format(_T("%s"), token);
+					}
+					else if(nCol == 7)
+					{
+						sResV.Format(_T("%s"), token);
+					}
+					token = _tcstok(NULL, seps);
+				}
+				nCol = 0;
+			}
+			else if (str == "#")
+			{
+				bPhaseData = TRUE;
+				nStLinePhaseData = nLine + 1;
+			}
+
+			sLine.Format(_T("%s\r\n"), str);
+			sData += sLine;
+		}
+	}
+	stdfile.Close();
+
+	if(!nEdLinePhaseData)
+		nEdLinePhaseData = nLine - 1;
+	int nTotLinesPhaseData = nEdLinePhaseData - nStLinePhaseData + 1;
+	nLinesRowX = nTotLinesPhaseData / nLinesColY;
+
+	int nPos, nExp;
+	double dNum;
+	CString sNum, sExp;
+	TCHAR tszNum[MAX_PATH], tszExp[MAX_PATH];
+
+	nPos = sResH.Find('e', 0);
+	sNum = sResH.Left(nPos);
+	sExp = sResH.Right(sResH.GetLength() - (nPos+1));
+	StringToTCHAR(sNum, tszNum);
+	m_stZygoInfo3D.dResMicronH = _tstof(tszNum) * pow(10, _ttoi(sExp)) * 1000000.0;
+
+	nPos = sResV.Find('e', 0);
+	sNum = sResV.Left(nPos);
+	sExp = sResV.Right(sResV.GetLength() - (nPos + 1));
+	StringToTCHAR(sNum, tszNum);
+	m_stZygoInfo3D.dResMicronV = _tstof(tszNum) * pow(10, _ttoi(sExp)) * 1000000.0;
+
+	m_stZygoInfo3D.nTotalPhaseData = m_stZygoInfo3D.m_arZygoXYZ.GetCount();
+	m_stZygoInfo3D.nSizeColY = nLinesColY;
+	m_stZygoInfo3D.nSizeRowX = nLinesRowX;
+
+	uint xSize = nLinesColY;
+	uint ySize = nLinesRowX;
+	m_matrixZ = cv::Mat(ySize, xSize, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
+
+	int nidx = 0;
+	//COPY RAW DATA
+	for (uint i = 0; i < ySize; i++) 
+	{
+		for (uint j = 0; j < xSize; j++) 
+		{
+			stTagZygoXYZ stXYZ = m_stZygoInfo3D.m_arZygoXYZ.GetAt(nidx);
+			m_matrixZ.at<float>(i, j) = stXYZ.fMicronZ;
+			nidx++;
+		}
+	}
+
+	return sData;
+}
+
+void CDlg3DViewer::RemoveAllZygoXYZ()
+{
+	int nTotal = m_stZygoInfo3D.m_arZygoXYZ.GetCount();
+	if (nTotal > 0)
+	{
+		m_stZygoInfo3D.m_arZygoXYZ.RemoveAll();
+	}
+}
+
 void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 {
-	std::string ss = (CT2A(sPath));//string 변환
-	cv::imwrite(ss, m_matrixZ);
-
+	CString sData = ExtractInfo(sPath);
 	cv::Scalar scalarAvg;
 	scalarAvg = cv::mean(m_matrixZ);
 	double  dLastAvg = scalarAvg[0];
@@ -394,4 +548,28 @@ void CDlg3DViewer::SetPosition(float fCurPos)
 	m_fpos_start = fCurPos - m_fScan_Range / 2.0f - m_fScan_Ramp; // [mm]
 	m_fpos_end = fCurPos + m_fScan_Range / 2.0f + m_fScan_Ramp; // [mm]
 	m_fpos_reset = m_fpos_start; // [mm]
+}
+
+TCHAR* CDlg3DViewer::StringToTCHAR(CString str)
+{
+	TCHAR *tszStr = NULL;
+	int nLen = str.GetLength() + 1;
+	tszStr = new TCHAR[nLen];
+	memset(tszStr, 0x00, nLen * sizeof(TCHAR));
+	_tcscpy(tszStr, str);
+
+	return tszStr;
+}
+
+void CDlg3DViewer::StringToTCHAR(CString str, TCHAR* tszStr)
+{
+	int nLen = str.GetLength() + 1;
+	if (nLen > MAX_PATH)
+	{
+		nLen = MAX_PATH;
+	}
+	memset(tszStr, 0x00, nLen * sizeof(TCHAR));
+	_tcsncpy(tszStr, str, nLen - 1);
+
+	return;
 }
