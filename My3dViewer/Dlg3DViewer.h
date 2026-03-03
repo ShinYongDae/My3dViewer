@@ -27,7 +27,7 @@ class CDlg3DViewer : public CDialog
 	CReferenceData *m_pReferenceData[REFER_BUFFER];
 	int m_nIndexOfRefer;
 	SSR3DData m_st3D;
-	cv::Mat m_matrixZ;
+	cv::Mat m_matrixA, m_matrixZ;
 	stTagZygoInfo3D m_stZygoInfo3D;
 
 	float GetDepthAvg(cv::Mat &matrixZ);
@@ -56,6 +56,7 @@ public:
 	void Grab(CString sPath);
 	SSR3DData* Get3DData();
 	void SetPosition(float fCurPos);
+	void DispFree();
 
 public:
 	LRESULT OnUpdate3DModel(WPARAM wParam, LPARAM lParam);

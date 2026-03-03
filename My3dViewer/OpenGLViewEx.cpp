@@ -32,9 +32,10 @@ BOOL COpenGLViewEx::DispFree()
 {
 	m_bViewActionPause=TRUE;
 	wglDeleteContext(m_hRC);
-	::ReleaseDC(m_hWnd, m_hDC);
+	if(m_hWnd)
+		::ReleaseDC(m_hWnd, m_hDC);
 
-	delete this;
+	//delete this;
 
 	return TRUE;
 }

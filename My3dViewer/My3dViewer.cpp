@@ -6,6 +6,8 @@
 #include "My3dViewer.h"
 #include "My3dViewerDlg.h"
 
+#include <crtdbg.h>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -24,6 +26,10 @@ CMy3dViewerApp::CMy3dViewerApp()
 {
 	// TODO: 여기에 생성 코드를 추가합니다.
 	// InitInstance에 모든 중요한 초기화 작업을 배치합니다.
+
+#if defined(DEBUG) | defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 }
 
 
@@ -54,6 +60,8 @@ BOOL CMy3dViewerApp::InitInstance()
 	// TODO: 이 문자열을 회사 또는 조직의 이름과 같은
 	// 적절한 내용으로 수정해야 합니다.
 	SetRegistryKey(_T("로컬 응용 프로그램 마법사에서 생성된 응용 프로그램"));
+
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	CMy3dViewerDlg dlg;
 	m_pMainWnd = &dlg;
@@ -89,3 +97,11 @@ BOOL CMy3dViewerApp::InitInstance()
 	return FALSE;
 }
 
+
+
+int CMy3dViewerApp::ExitInstance()
+{
+	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
+
+	return CWinApp::ExitInstance();
+}

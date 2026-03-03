@@ -56,4 +56,5 @@ public:
 	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 	afx_msg void OnMove(int x, int y);
 	CStatic m_Pic;
+	afx_msg void OnDestroy();
 };

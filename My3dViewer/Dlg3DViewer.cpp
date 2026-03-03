@@ -29,18 +29,22 @@ CDlg3DViewer::~CDlg3DViewer()
 {
 	RemoveAllZygoXYZ();
 
-	m_pView->MakeCurrent();
-
-	if (this->GetSafeHwnd())
-	{
-		if (m_pView)
-			m_pView->DestroyWindow();
-	}
+	//if (this->GetSafeHwnd())
+	//{
+	//	m_pView->MakeCurrent();
+	//	if (m_pView->m_hWnd)
+	//		m_pView->DestroyWindow();
+	//}
+	//if (m_pView->m_hWnd)
+	//	delete m_pView;
 
 	if (m_pView)
+	{
+		m_pView->DestroyWindow();
 		delete m_pView;
+		m_pView = nullptr;
+	}
 
-	m_pView = nullptr;
 
 	for (int i = 0; i < REFER_BUFFER; i++)
 	{
@@ -89,6 +93,12 @@ BOOL CDlg3DViewer::OnInitDialog()
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
+}
+
+void CDlg3DViewer::DispFree()
+{
+	if (m_pView)
+		m_pView->DispFree();
 }
 
 void CDlg3DViewer::InitReference(int nIndex, CWnd *pView, CWnd *pViewPiece, CWnd *pViewMask)
@@ -176,17 +186,12 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 				token = _tcstok(tszStr, seps); //문자열을 기준에 따라 token에 임시 저장한다.
 				while (token != NULL)
 				{
-					nCol++;
-					token = _tcstok(NULL, seps);
-
-					if (nCol == 1)
+					if (nCol == 0)
 						nColY = _ttoi(token);
-					else if(nCol == 2)
+					else if(nCol == 1)
 						nRowX = _ttoi(token);
-					else if (nCol == 3)
+					else if (nCol == 2)
 						fMicronZ = _tstof(token);
-
-					token = _tcstok(NULL, seps);
 
 					if (!nColY)
 					{
@@ -195,10 +200,16 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 						else if (!nLinesColY)
 							nLinesColY = nLine - nPrevLineColY0;
 					}
+
+					nCol++;
+					token = _tcstok(NULL, seps);
 				}
 				nCol = 0;
 
 				stTagZygoXYZ _xyz;
+				_xyz.nColY = nColY;
+				_xyz.nRowX = nRowX;
+				_xyz.fMicronZ = fMicronZ;
 				m_stZygoInfo3D.m_arZygoXYZ.Add(_xyz);
 			}
 			else if (nLine == 8)
@@ -246,13 +257,15 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 	sNum = sResH.Left(nPos);
 	sExp = sResH.Right(sResH.GetLength() - (nPos+1));
 	StringToTCHAR(sNum, tszNum);
-	m_stZygoInfo3D.dResMicronH = _tstof(tszNum) * pow(10, _ttoi(sExp)) * 1000000.0;
+	StringToTCHAR(sExp, tszExp);
+	m_stZygoInfo3D.dResMicronH = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000000.0;
 
 	nPos = sResV.Find('e', 0);
 	sNum = sResV.Left(nPos);
 	sExp = sResV.Right(sResV.GetLength() - (nPos + 1));
 	StringToTCHAR(sNum, tszNum);
-	m_stZygoInfo3D.dResMicronV = _tstof(tszNum) * pow(10, _ttoi(sExp)) * 1000000.0;
+	StringToTCHAR(sExp, tszExp);
+	m_stZygoInfo3D.dResMicronV = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000000.0;
 
 	m_stZygoInfo3D.nTotalPhaseData = m_stZygoInfo3D.m_arZygoXYZ.GetCount();
 	m_stZygoInfo3D.nSizeColY = nLinesColY;
@@ -261,6 +274,7 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 	uint xSize = nLinesColY;
 	uint ySize = nLinesRowX;
 	m_matrixZ = cv::Mat(ySize, xSize, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
+	m_matrixA = cv::Mat(ySize, xSize, CV_8UC1);
 
 	int nidx = 0;
 	//COPY RAW DATA
@@ -268,8 +282,9 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 	{
 		for (uint j = 0; j < xSize; j++) 
 		{
-			stTagZygoXYZ stXYZ = m_stZygoInfo3D.m_arZygoXYZ.GetAt(nidx);
+			stTagZygoXYZ stXYZ = m_stZygoInfo3D.m_arZygoXYZ.GetAt(nidx); // Non scaled data.
 			m_matrixZ.at<float>(i, j) = stXYZ.fMicronZ;
+			//m_matrixA.at<float>(i, j) = stXYZ.fMicronZ;
 			nidx++;
 		}
 	}
@@ -327,8 +342,9 @@ void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 		}
 	}
 
-
 	SSR3DData *S3DData = Get3DData();
+	S3DData->m_nSizeX = m_matrixZ.cols;
+	S3DData->m_nSizeY = m_matrixZ.rows;
 	S3DData->m_matDepthMap = m_matrixZ.clone();
 	S3DData->m_dAvg = dLastAvg;
 	S3DData->m_dMax = dLastMax;

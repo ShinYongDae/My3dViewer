@@ -144,7 +144,8 @@ COpenGLView::~COpenGLView()
 		m_GLDraw.DestroyFont();
 	
 	wglDeleteContext(m_hRC);
-	::ReleaseDC(m_hWnd, m_hDC);
+	if(m_hWnd)
+		::ReleaseDC(m_hWnd, m_hDC);
 }
 
 BEGIN_MESSAGE_MAP(COpenGLView, CWnd)
@@ -194,11 +195,11 @@ int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// 픽셀 포맷이 적절하게 셋팅되었다면 우리는 이제 Rendering Context를 얻어야 한다.
 	// 만약 RC를 얻는데 실패했다면 에러메세지를 출력하고 프로그램은 종료한다. 마찬가지로 반환값은 False이다.
 	// create rendering context and make it current
-	m_hRC = wglCreateContext(m_hDC);
+	//m_hRC = wglCreateContext(m_hDC);
 
 	// RC(rendering context)를 활성화 시켜야 한다.
 	// 만약 실패한다면 에러메세지를 출력하고 프로그램은 종료 그리고 반환값은 False이다.
-	VERIFY(wglMakeCurrent(m_hDC, m_hRC));
+	//VERIFY(wglMakeCurrent(m_hDC, m_hRC));
 	InitGraphicTool();
 	return 0;
 }
@@ -245,7 +246,7 @@ int COpenGLView::SetupPixelFormat(HDC hdc)
 
 	nPixelFormat =ChoosePixelFormat(m_hDC,&pfd);
 	VERIFY(SetPixelFormat(m_hDC,nPixelFormat,&pfd));
-	m_hRC =wglCreateContext(m_hDC);	
+	m_hRC = wglCreateContext(m_hDC);	
 	VERIFY(wglMakeCurrent(m_hDC,m_hRC));
 
 	return 1;

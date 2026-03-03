@@ -78,6 +78,7 @@ BEGIN_MESSAGE_MAP(CMy3dViewerDlg, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON1, &CMy3dViewerDlg::OnBnClickedButton1)
 	ON_WM_SHOWWINDOW()
 	ON_WM_MOVE()
+	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
@@ -192,7 +193,7 @@ BOOL CMy3dViewerDlg::FileBrowse(CString& sPath)
 	int nAoiMachineNum = 0;
 
 	// File Open Filter 
-	static TCHAR BASED_CODE szFilter[] = _T("Mst Files (*.bin)|*.bin|All Files (*.*)|*.*||");
+	static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.xyz)|*.xyz|All Files (*.*)|*.*||");
 
 	// CFileDialog 
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, NULL);
@@ -234,6 +235,9 @@ void CMy3dViewerDlg::OnBnClickedButton1()
 		AfxMessageBox(_T("Error : 파일을 찾지못했습니다."));
 		return;
 	}
+
+	m_viewer.Grab(sPath);
+	AfxMessageBox(_T("Complete loading 3D File."));
 }
 
 
@@ -283,13 +287,18 @@ void CMy3dViewerDlg::RefreshDlg()
 		m_viewer.SetWindowPos(NULL, rtDlg.left, rtDlg.top, nWidthDlg, nHeightDlg, SWP_NOZORDER | SWP_NOACTIVATE);
 		m_viewer.ShowWindow(SW_SHOW);
 
-		cv::resize(m_matRainbow, m_Image, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
-		CDC* pDCResult = m_Pic.GetDC();
-		if (!m_Image.empty())
+		if(!m_matRainbow.empty())
+			cv::resize(m_matRainbow, m_Image, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
+
+		if (m_Pic.GetSafeHwnd())
 		{
-			DrawMat(pDCResult->m_hDC, m_Image);
+			CDC* pDCResult = m_Pic.GetDC();
+			if (!m_Image.empty())
+			{
+				DrawMat(pDCResult->m_hDC, m_Image);
+			}
+			ReleaseDC(pDCResult);
 		}
-		ReleaseDC(pDCResult);
 	}
 }
 
@@ -356,4 +365,13 @@ void CMy3dViewerDlg::DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh
 			0, 0, img.cols, img.rows,
 			img.data, binfo, DIB_RGB_COLORS, SRCCOPY);
 	}
+}
+
+
+void CMy3dViewerDlg::OnDestroy()
+{
+	CDialog::OnDestroy();
+
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	m_viewer.DispFree();
 }

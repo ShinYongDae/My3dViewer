@@ -1,0 +1,20 @@
+opencv_world453.lib
+opencv_world453d.lib
+
+opencv_world453.dll
+opencv_world453d.dll
+
+PATH=C:\opencv\opencv\build\x64\vc14\bin;%PATH%
+
+C:\opencv\opencv\build\x64\vc14\bin
+
+C:\opencv\opencv\build\include
+
+C:\opencv\opencv\build\x64\vc14\lib
+
+다중 스레드 디버그 DLL(/MDd)
+
+
+
+
+
