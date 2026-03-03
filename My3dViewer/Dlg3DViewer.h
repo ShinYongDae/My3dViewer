@@ -1,6 +1,7 @@
 #pragma once
 
 #include "OpenGLViewEx.h"
+#include "OpenGLDraw.h"
 #include "ReferenceData.h"
 #include "C3DModel.h"
 
@@ -24,11 +25,39 @@ class CDlg3DViewer : public CDialog
 	DECLARE_DYNAMIC(CDlg3DViewer)
 
 	COpenGLViewEx* m_pView;
+	COpenGLDraw m_draw;
 	CReferenceData *m_pReferenceData[REFER_BUFFER];
 	int m_nIndexOfRefer;
 	SSR3DData m_st3D;
 	cv::Mat m_matrixA, m_matrixZ;
 	stTagZygoInfo3D m_stZygoInfo3D;
+	BOOL m_bFitSuccess;
+	//sPlane m_RefPlane;
+
+	int m_nPolygonDrawVertex;
+	CPoint m_ptPolygon[100];
+	CPoint m_ptRect[4];
+	CPoint m_ptLine[2];
+	CPoint m_ptPrePoint;
+	int m_nSelectDrawType;
+	BOOL m_bUseCurve;
+
+	BOOL m_bOnlyResin;
+	CButton m_ChkRectZoom;
+	CButton m_ChkZoomIn;
+	CButton m_ChkZoomOut;
+	CButton m_ChkFit;
+	CButton m_ChkOnlyResin;
+
+	// for OpenGL Rendering
+	BOOL m_bOpMode; // IDC_CHECK_ZOOM
+	int _mouseButton;
+	CPoint _mouseDownPoint;
+	CdPoint3D _eyePos;
+	CdPoint3D _centerPos;
+	double _angleHor;
+	double _angleVer;
+	double _fovAngle;
 
 	float GetDepthAvg(cv::Mat &matrixZ);
 	cv::Mat calcGrayHist(const cv::Mat& img);
@@ -60,6 +89,7 @@ public:
 
 public:
 	LRESULT OnUpdate3DModel(WPARAM wParam, LPARAM lParam);
+	LRESULT OnGLRender(WPARAM wParam, LPARAM lParam);
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME

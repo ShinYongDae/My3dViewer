@@ -15,7 +15,23 @@ IMPLEMENT_DYNAMIC(CDlg3DViewer, CDialog)
 CDlg3DViewer::CDlg3DViewer(CWnd* pParent /*=NULL*/)
 	: CDialog(IDD_DLG_3D, pParent)
 {
+	m_nSelectDrawType = SHAPE::SHAPE_NONE;
+	m_nPolygonDrawVertex = 0;
+	for (int i = 0; i < 100; i++)
+	{
+		m_ptPolygon[i] = CPoint(0, 0);
+	}
+	for (int i = 0; i < 4; i++)
+	{
+		m_ptRect[i] = CPoint(0, 0);
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		m_ptLine[i] = CPoint(0, 0);
+	}
+
 	m_nIndexOfRefer = 0;
+
 	for (int i = 0; i < REFER_BUFFER; i++)
 	{
 		m_pReferenceData[i] = NULL;
@@ -23,6 +39,20 @@ CDlg3DViewer::CDlg3DViewer(CWnd* pParent /*=NULL*/)
 	m_fpos_start = 50.00;
 	m_fScan_Range = 0.2;
 	m_fScan_Ramp = 0.2;
+	m_bFitSuccess = FALSE;
+
+	// for OpenGL Rendering
+	m_bOpMode = 0;
+	_mouseButton = 0;
+	_angleHor = 40;
+	_angleVer = -36;
+	_fovAngle = 45;
+	_eyePos.x = 0;
+	_eyePos.y = -4;
+	_eyePos.z = 0;
+	_centerPos.x = 0;
+	_centerPos.y = 0;
+	_centerPos.z = 0;
 }
 
 CDlg3DViewer::~CDlg3DViewer()
@@ -59,11 +89,17 @@ CDlg3DViewer::~CDlg3DViewer()
 void CDlg3DViewer::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_CHECK_ZOOM, m_ChkRectZoom);
+	DDX_Control(pDX, IDC_CHECK_ZOOMIN, m_ChkZoomIn);
+	DDX_Control(pDX, IDC_CHECK_ZOOMOUT, m_ChkZoomOut);
+	DDX_Control(pDX, IDC_CHECK_FIT, m_ChkFit);
+	DDX_Control(pDX, IDC_CHK_ONLY_RESIN, m_ChkOnlyResin);
 }
 
 
 BEGIN_MESSAGE_MAP(CDlg3DViewer, CDialog)
 	ON_MESSAGE(WM_UPDATE_3D_MODEL, OnUpdate3DModel)
+	ON_MESSAGE(WM_USER_RENDER, OnGLRender)
 END_MESSAGE_MAP()
 
 
@@ -303,6 +339,8 @@ void CDlg3DViewer::RemoveAllZygoXYZ()
 
 void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 {
+	m_bFitSuccess = FALSE;
+
 	CString sData = ExtractInfo(sPath);
 	cv::Scalar scalarAvg;
 	scalarAvg = cv::mean(m_matrixZ);
@@ -588,4 +626,288 @@ void CDlg3DViewer::StringToTCHAR(CString str, TCHAR* tszStr)
 	_tcsncpy(tszStr, str, nLen - 1);
 
 	return;
+}
+
+
+LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
+{
+	SSR3DData *S3DData = Get3DData();
+	if (S3DData->m_bValid == 0)
+		return 0;
+
+	if (m_bOpMode == 0)
+	{
+
+		if (lParam == WM_LBUTTONDOWN)
+		{
+			_mouseButton = 1;
+			_mouseDownPoint = m_pView->m_ptCurPos;
+		}
+		else if (lParam == WM_LBUTTONUP)
+		{
+			_mouseDownPoint = CPoint(0, 0);
+			_mouseButton = 0;
+		}
+		else if (lParam == WM_RBUTTONDOWN)
+		{
+			_mouseButton = 2;
+			_mouseDownPoint = m_pView->m_ptCurPos;
+		}
+		else if (lParam == WM_RBUTTONUP)
+		{
+			_mouseDownPoint = CPoint(0, 0);
+			_mouseButton = 0;
+		}
+		else if (lParam == WM_MOUSEHWHEEL)
+		{
+			if (m_pView->m_dWheelZDelta == 1)
+			{
+				m_pView->ZoomIn(1.1);
+			}
+			else
+				m_pView->ZoomOut(1.1);
+
+			return 0;
+
+			//_eyePos.y += m_pView->m_dWheelZDelta;
+		}
+		else if (lParam == WM_MOUSEMOVE)
+		{
+			if (_mouseButton == 1) {
+				//Increment the object rotation angles
+				_angleHor -= (m_pView->m_ptCurPos.x - _mouseDownPoint.x) / 3.6;
+				_angleVer -= (m_pView->m_ptCurPos.y - _mouseDownPoint.y) / 3.6;
+
+				//double dy = 0.3*(point.x-_mouseDownPoint.x);
+				//double dp = 0.3*(point.y-_mouseDownPoint.y);
+				//CordTransform dt(0, 0, 0, 0, _DEG2RAD*-dp, _DEG2RAD*dy);
+				//_tr *= dt;
+
+			}
+			else if (_mouseButton == 2) {
+				_centerPos.x -= (m_pView->m_ptCurPos.x - _mouseDownPoint.x) / 100.;
+				_centerPos.z += (m_pView->m_ptCurPos.y - _mouseDownPoint.y) / 100.;
+
+				//double dy = 0.002*(point.x-_mouseDownPoint.x);
+				//double dz = 0.002*(point.y-_mouseDownPoint.y);
+				//CordTransform dt(0, dy, dz, 0, 0, 0);
+				//_tr *= dt;
+			}
+			else if (_mouseButton == 3) {
+				//double dy = 0.3*(point.x-_mouseDownPoint.x);
+				//CordTransform dt(0, 0, 0, _DEG2RAD*dy, 0, 0);
+				//_tr *= dt;
+			}
+
+			_mouseDownPoint = m_pView->m_ptCurPos;
+
+		}
+	}
+
+	GLfloat ambientLight[] = { 0.3f, 0.4f, 0.5f, 1.0f };
+	GLfloat diffuseLight[] = { 0.2f, 0.5f, 0.2f, 1.0f };
+	GLfloat lightPos[] = { -1500.0f, -500.0f, 5000.0f, 1.0f };
+	GLfloat specular[] = { 0.2f, 0.5f, 0.5f, 1.0f };
+	GLfloat specref[] = { 1.0f, 0.1f, 1.0f, 1.0f };
+
+	bool bLight = 0;
+	//glEnable(GL_DEPTH_TEST); // Enables Depth Testing
+	if (bLight)
+	{
+		//glEnable(GL_DEPTH_TEST); // Enables Depth Testing
+		glEnable(GL_FRONT_FACE); // 뒷면에 대해서는 계산하지 말라
+		glFrontFace(GL_CCW);   // 시계방향이 앞면이다.
+		glEnable(GL_LIGHTING); // 빛을 사용한다.
+
+		glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+		glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+		glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+		glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+		glEnable(GL_LIGHT0); // 0번빛을 사용한다.
+
+		glEnable(GL_COLOR_MATERIAL);
+		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+		glMaterialfv(GL_FRONT, GL_SPECULAR, specref);
+		glMateriali(GL_FRONT, GL_SHININESS, 50);
+		glMaterialfv(GL_BACK, GL_SPECULAR, specref);
+		glMateriali(GL_BACK, GL_SHININESS, 50);
+	}
+	//	glDepthFunc(GL_LEQUAL); // The Type Of Depth Testing To Do
+	// Really Nice Perspective    Calculations
+	//glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+
+	glPushMatrix();
+	// 보는 시각 설정
+	gluLookAt(_eyePos.x, _eyePos.y, _eyePos.z, _centerPos.x, _centerPos.y, _centerPos.z, 0, 0, 1);
+	// gluLookAt (_tr(0,3), _tr(1,3), _tr(2,3),   _tr(0,3) + _tr(0,0), _tr(1,3) + _tr(1,0), _tr(2,3) + _tr(2,0), _tr(0,2), _tr(1,2), _tr(2,2));
+
+	// 좌표계 회전
+	glRotated(_angleVer, 1, 0, 0);
+	glRotated(_angleHor, 0, 0, 1);
+	glTranslatef(-500, -500, 0);
+
+	m_draw.DrawAxisXYZ(0, 0, 0, 150, 5);
+
+//#if USE_3D_HELICAM
+	m_draw.DrawGrid(10, 10, 100, 100, 0, 0, 5, 5, CdPoint3D(0, 0, 0), G_GRID_TEXT, RGB_RED);
+//#elif USE_3D_GFV
+//	m_draw.DrawGrid(10, 7, 100, 100, 0, 0, 5, 5, CdPoint3D(0, 0, 0), G_GRID_TEXT, RGB_RED);
+//#endif
+
+	m_draw.SetColor(RGB_BLUE, 1);
+
+
+
+	if (S3DData->m_bValid)
+	{
+		double yScale;
+		double xScale;
+
+		if (!S3DData->m_matDepthMap.empty())
+		{
+//#if USE_3D_HELICAM == USE
+			yScale = 1000 / S3DData->m_matDepthMap.rows;
+			xScale = 1000 / S3DData->m_matDepthMap.cols;
+//#elif USE_3D_GFV == USE
+//			yScale = 686.0 / S3DData->m_matDepthMap.rows;
+//			xScale = 1000.0 / S3DData->m_matDepthMap.cols;
+//#endif
+
+		}
+
+
+		int x = 0;
+		int y = 0;
+
+
+		if (m_Model.m_bMeshCreated)
+		{
+
+			m_Model.Draw(TEX_LUT);
+		}
+
+
+		if (m_nSelectDrawType == SHAPE::LINE)
+		{
+			double dStartZ, dEndZ;
+			dStartZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+			dEndZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+			glLineWidth(3);
+			m_draw.SetColor(RGB_WHITE, 0.5);
+			glBegin(GL_LINES); // filled quad
+
+			if (m_bOnlyResin)
+			{
+				glVertex3f((m_ptLine[0].x + m_ptPrePoint.x) * xScale, (m_ptLine[0].y + m_ptPrePoint.y) * yScale, 0);
+				glVertex3f((m_ptLine[1].x + m_ptPrePoint.x) * xScale, (m_ptLine[1].y + m_ptPrePoint.y) *  yScale, 0);
+			}
+			else
+			{
+				glVertex3f((m_ptLine[0].x + m_ptPrePoint.x) * xScale, (m_ptLine[0].y + m_ptPrePoint.y) * yScale, dStartZ);
+				glVertex3f((m_ptLine[1].x + m_ptPrePoint.x) * xScale, (m_ptLine[1].y + m_ptPrePoint.y) * yScale, dEndZ);
+			}
+
+
+			glEnd();
+		}
+		else if (m_nSelectDrawType == SHAPE::RECTANGLE)
+		{
+			double dDepthZ;
+			dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+			glLineWidth(3);
+			m_draw.SetColor(RGB_WHITE, 0.5);
+			glBegin(GL_LINE_STRIP); // filled quad
+
+			if (m_bOnlyResin)
+			{
+				glVertex3f((m_ptRect[0].x + m_ptPrePoint.x)*xScale, (m_ptRect[0].y + m_ptPrePoint.y)*yScale, 0);
+				glVertex3f((m_ptRect[2].x + m_ptPrePoint.x)*xScale, (m_ptRect[2].y + m_ptPrePoint.y)*yScale, 0);
+				glVertex3f((m_ptRect[1].x + m_ptPrePoint.x)*xScale, (m_ptRect[1].y + m_ptPrePoint.y)*yScale, 0);
+				glVertex3f((m_ptRect[3].x + m_ptPrePoint.x)*xScale, (m_ptRect[3].y + m_ptPrePoint.y)*yScale, 0);
+				glVertex3f((m_ptRect[0].x + m_ptPrePoint.x)*xScale, (m_ptRect[0].y + m_ptPrePoint.y)*yScale, 0);
+			}
+			else
+			{
+				glVertex3f((m_ptRect[0].x + m_ptPrePoint.x)*xScale, (m_ptRect[0].y + m_ptPrePoint.y)*yScale, dDepthZ);
+				glVertex3f((m_ptRect[2].x + m_ptPrePoint.x)*xScale, (m_ptRect[2].y + m_ptPrePoint.y)*yScale, dDepthZ);
+				glVertex3f((m_ptRect[1].x + m_ptPrePoint.x)*xScale, (m_ptRect[1].y + m_ptPrePoint.y)*yScale, dDepthZ);
+				glVertex3f((m_ptRect[3].x + m_ptPrePoint.x)*xScale, (m_ptRect[3].y + m_ptPrePoint.y)*yScale, dDepthZ);
+				glVertex3f((m_ptRect[0].x + m_ptPrePoint.x)*xScale, (m_ptRect[0].y + m_ptPrePoint.y)*yScale, dDepthZ);
+			}
+			glEnd();
+		}
+		else if (m_nSelectDrawType == SHAPE::POLYGON)
+		{
+			double dDepthZ;
+			dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+			glLineWidth(3);
+			m_draw.SetColor(RGB_WHITE, 0.5);
+			glBegin(GL_LINE_STRIP); // filled quad
+
+			if (m_bOnlyResin)
+			{
+				for (int i = 0; i < m_nPolygonDrawVertex; i++)
+				{
+					glVertex3f((m_ptPolygon[i].x + m_ptPrePoint.x)*xScale, (m_ptPolygon[i].y + m_ptPrePoint.y)*yScale, 0);
+				}
+				glVertex3f((m_ptPolygon[0].x + m_ptPrePoint.x)*xScale, (m_ptPolygon[0].y + m_ptPrePoint.y)*yScale, 0);
+			}
+			else
+			{
+				for (int i = 0; i < m_nPolygonDrawVertex; i++)
+				{
+					glVertex3f((m_ptPolygon[i].x + m_ptPrePoint.x)*xScale, (m_ptPolygon[i].y + m_ptPrePoint.y)*yScale, dDepthZ);
+				}
+				glVertex3f((m_ptPolygon[0].x + m_ptPrePoint.x)*xScale, (m_ptPolygon[0].y + m_ptPrePoint.y)*yScale, dDepthZ);
+			}
+			glEnd();
+		}
+		//else if (CGvisAORView::m_pAORMasterView->m_cMatching.m_vecThinningPt.size() > 0)
+		//{
+		//	double dDepthZ;
+		//	dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+		//	glLineWidth(3);
+		//	m_draw.SetColor(RGB_WHITE, 0.5);
+		//	glBegin(GL_LINE_STRIP); // filled quad
+		//
+		//	if (m_bOnlyResin)
+		//	{
+		//		for (int i = 0; i < CGvisAORView::m_pAORMasterView->m_cMatching.m_vecThinningPt.size(); i++)
+		//		{
+		//			glVertex3f(CGvisAORView::m_pAORMasterView->m_cMatching.m_vecThinningPt.at(i).x*xScale, CGvisAORView::m_pAORMasterView->m_cMatching.m_vecThinningPt.at(i).y*yScale, 0);
+		//		}
+		//	}
+		//	else
+		//	{
+		//		for (int i = 0; i < CGvisAORView::m_pAORMasterView->m_cMatching.m_vecThinningPt.size(); i++)
+		//		{
+		//			glVertex3f(CGvisAORView::m_pAORMasterView->m_cMatching.m_vecThinningPt.at(i).x*xScale, CGvisAORView::m_pAORMasterView->m_cMatching.m_vecThinningPt.at(i).y*yScale, dDepthZ);
+		//		}
+		//	}
+		//	glEnd();
+		//}
+
+	}
+
+
+
+
+
+
+	glPopMatrix();
+	glLineWidth(1);
+
+	if (bLight)
+	{
+		glDisable(GL_DEPTH_TEST); // Enables Depth Testing
+		glDisable(GL_CULL_FACE); // 뒷면에 대해서는 계산하지 말라
+		glEnable(GL_LIGHTING); // 빛을 사용한다.
+
+		glDisable(GL_LIGHT0); // 0번빛을 사용한다.
+
+		glDisable(GL_COLOR_MATERIAL);
+	}
+
+	return 0;
 }

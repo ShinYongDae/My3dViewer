@@ -57,19 +57,21 @@ class C3DModel
 	GLuint m_TextureGray;
 	BOOL m_bTextureLoaded;
 	BOOL m_bTextureLoadedGray;
-	BOOL m_bMeshCreated;
 
 	float HueToRGB(float v1, float v2, float vH);
 	void  HSLToRGB(float H, float S, float L, float& r, float& g, float &b);
 	void LoadTexture(cv::Mat mat);
 	void LoadTextureGray(cv::Mat mat);
-	void Draw(TextureMode mode);
 	void FreeTexture();
 	void FreeTextureGray();
 
 public:
 	C3DModel();
 	~C3DModel();
+
+public:
+	BOOL m_bMeshCreated;
+	void Draw(TextureMode mode);
 
 public:
 	cv::Mat m_ZMap;
