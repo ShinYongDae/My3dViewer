@@ -254,7 +254,7 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 				stTagZygoXYZ _xyz;
 				_xyz.nColY = nColY;
 				_xyz.nRowX = nRowX;
-				_xyz.fMicronZ = fMicronZ;
+				_xyz.fZmm = fMicronZ / 1000.0;
 				m_stZygoInfo3D.m_arZygoXYZ.Add(_xyz);
 			}
 			else if (nLine == 8)
@@ -303,14 +303,14 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 	sExp = sResH.Right(sResH.GetLength() - (nPos+1));
 	StringToTCHAR(sNum, tszNum);
 	StringToTCHAR(sExp, tszExp);
-	m_stZygoInfo3D.dResMicronH = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000000.0;
+	m_stZygoInfo3D.dResHmm = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0;
 
 	nPos = sResV.Find('e', 0);
 	sNum = sResV.Left(nPos);
 	sExp = sResV.Right(sResV.GetLength() - (nPos + 1));
 	StringToTCHAR(sNum, tszNum);
 	StringToTCHAR(sExp, tszExp);
-	m_stZygoInfo3D.dResMicronV = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000000.0;
+	m_stZygoInfo3D.dResVmm = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0;
 
 	m_stZygoInfo3D.nTotalPhaseData = m_stZygoInfo3D.m_arZygoXYZ.GetCount();
 	m_stZygoInfo3D.nSizeColY = nLinesColY;
@@ -328,8 +328,8 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 		for (uint j = 0; j < xSize; j++) 
 		{
 			stTagZygoXYZ stXYZ = m_stZygoInfo3D.m_arZygoXYZ.GetAt(nidx); // Non scaled data.
-			m_matrixZ.at<float>(i, j) = stXYZ.fMicronZ;
-			//m_matrixA.at<float>(i, j) = stXYZ.fMicronZ;
+			m_matrixZ.at<float>(i, j) = stXYZ.fZmm;
+			//m_matrixA.at<float>(i, j) = stXYZ.fZmm;
 			nidx++;
 		}
 	}
@@ -771,7 +771,7 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 	glRotated(_angleVer, 1, 0, 0);
 	glRotated(_angleHor, 0, 0, 1);
 	//glTranslatef(-500, -500, 0);
-	glTranslatef(-600, -400, 150);
+	glTranslatef(-600, -200, 100);
 
 	m_draw.DrawAxisXYZ(0, 0, 0, 150, 5);
 
@@ -811,6 +811,8 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 		{
 
 			m_Model.Draw(TEX_LUT);
+
+			m_draw.DrawAxisXYZ(0, 0, 0, 100, 2);
 		}
 
 

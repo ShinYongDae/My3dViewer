@@ -11,13 +11,13 @@
 struct stTagZygoXYZ
 {
 	int nColY, nRowX;
-	float fMicronZ;
+	float fZmm;
 };
 typedef CArray<stTagZygoXYZ, stTagZygoXYZ> CArZygoXYZ;
 
 struct stTagZygoInfo3D
 {
-	double dResMicronH, dResMicronV;
+	double dResHmm, dResVmm;
 	int nTotalPhaseData, nSizeColY, nSizeRowX;
 	CArZygoXYZ m_arZygoXYZ;
 };
