@@ -61,6 +61,7 @@ class CDlg3DViewer : public CDialog
 	void StringToTCHAR(CString str, TCHAR* tszStr);
 	void RemoveAllZygoXYZ();
 
+	void Prepare3D();
 	void Display3D();
 	void Auto3D();
 

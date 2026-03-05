@@ -412,7 +412,7 @@ void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 
 	//cv::setNumThreads(0);
 	//vec.clear(); // 더 이상 필요 없으면,
-
+	Prepare3D();
 	Display3D();
 	Auto3D();
 }
@@ -812,7 +812,7 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 
 			m_Model.Draw(TEX_LUT);
 
-			m_draw.DrawAxisXYZ(0, 0, 0, 100, 2);
+			//m_draw.DrawAxisXYZ(0, 0, 0, 100, 2);
 		}
 
 
@@ -935,6 +935,9 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+void CDlg3DViewer::Prepare3D()
+{
+}
 
 void CDlg3DViewer::Display3D()
 {
@@ -946,14 +949,18 @@ void CDlg3DViewer::Display3D()
 	applyColorMap(dst, dst2, cv::COLORMAP_RAINBOW);
 	if (!dst.empty())
 	{
-		S3DData->m_AmpMatrix = S3DData->m_AmpMatrix.clone();// 강도 이미지???
-		S3DData->m_matDepthMap = S3DData->m_matDepthMap.clone();//보정 안된 높이맵
-		S3DData->m_matDepthMapColor = S3DData->m_matDepthMapColor.clone();
+		//S3DData->m_AmpMatrix = S3DData->m_AmpMatrix.clone();// 강도 이미지???
+		//S3DData->m_matDepthMap = S3DData->m_matDepthMap.clone();//보정 안된 높이맵
+		//S3DData->m_matDepthMapColor = S3DData->m_matDepthMapColor.clone();
 		S3DData->m_bValid = 1;
 
 		//SendMessage(WM_UPDATE_3D_MODEL, 0, 0);
 
 		m_DefectColor = dst2;
+
+		S3DData->m_matDepthMapColor = m_DefectColor.clone();
+		S3DData->m_AmpMatrix = S3DData->m_matDepthMap.clone();
+
 
 		CRect rectResult;
 		CDC* pDCResult;
