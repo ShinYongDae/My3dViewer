@@ -11,6 +11,10 @@
 #define SEM_FC_PLC_DATA _T("C:\\AorSet\\PLCData.ini")
 #define SEM_FC_PLC_DATA2 _T("C:\\AorSet\\PLCData2.ini")
 
+
+#include <vector>
+using namespace std;
+
 typedef enum tagSemFCReg
 {
 	SEM_REPAIR_STATUS,
@@ -5538,6 +5542,9 @@ typedef struct SSR3DData
 		m_dMatchingScale = 0;
 		m_dMatchingTheta = 0;
 		m_dMatchingErode = 0;
+	}
+	~SSR3DData()
+	{
 	}
 	int m_nVersion;
 	BOOL m_bLoadManual3D;

@@ -13,8 +13,8 @@
 #include <gl/freeglut_std.h>
 #pragma comment (lib, "freeglut.lib")
 
-#include <vector>
-using namespace std;
+//#include <vector>
+//using namespace std;
 
 #include "Entities.h"
 #include "GlobalDefine.h"

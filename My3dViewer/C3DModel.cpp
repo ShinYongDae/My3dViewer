@@ -114,7 +114,7 @@ void C3DModel::MakeModel()
 
 			tri.x[0] = x;
 			tri.y[0] = y;
-			tri.z[0] = m_ZMap.at<float>(y, x);
+			tri.z[0] = m_ZMap.at<float>(y, x) / 1000.0; // micron --> mm
 
 			float h;
 
@@ -127,7 +127,7 @@ void C3DModel::MakeModel()
 
 			tri.x[1] = x + 1;
 			tri.y[1] = y;
-			tri.z[1] = m_ZMap.at<float>(tri.y[1], tri.x[1]);
+			tri.z[1] = m_ZMap.at<float>(tri.y[1], tri.x[1]) / 1000.0; // micron --> mm
 
 			h = 330 - ((tri.z[1] - dMin) / (dMax - dMin)) * 330;
 
@@ -138,7 +138,7 @@ void C3DModel::MakeModel()
 
 			tri.x[2] = x + 1;
 			tri.y[2] = y + 1;
-			tri.z[2] = m_ZMap.at<float>(tri.y[2], tri.x[2]);
+			tri.z[2] = m_ZMap.at<float>(tri.y[2], tri.x[2]) / 1000.0; // micron --> mm
 
 			h = 330 - ((tri.z[1] - dMin) / (dMax - dMin)) * 330;
 
@@ -148,15 +148,11 @@ void C3DModel::MakeModel()
 			tri.TexPosY[2] = tri.y[2] / m_ZMap.rows;
 			tri.CalcNormalVec();
 
-
-
-
-
 			m_triangles.push_back(tri);
 
 			tri.x[0] = x;
 			tri.y[0] = y;
-			tri.z[0] = m_ZMap.at<float>(y, x);
+			tri.z[0] = m_ZMap.at<float>(y, x) / 1000.0; // micron --> mm
 			tri.TexPosX[0] = tri.x[0] / m_ZMap.cols;
 			tri.TexPosY[0] = tri.y[0] / m_ZMap.rows;
 
@@ -166,7 +162,7 @@ void C3DModel::MakeModel()
 
 			tri.x[1] = x + 1;
 			tri.y[1] = y + 1;
-			tri.z[1] = m_ZMap.at<float>(tri.y[1], tri.x[1]);
+			tri.z[1] = m_ZMap.at<float>(tri.y[1], tri.x[1]) / 1000.0; // micron --> mm
 			tri.TexPosX[1] = tri.x[1] / m_ZMap.cols;
 			tri.TexPosY[1] = tri.y[1] / m_ZMap.rows;
 
@@ -176,7 +172,7 @@ void C3DModel::MakeModel()
 
 			tri.x[2] = x;
 			tri.y[2] = y + 1;
-			tri.z[2] = m_ZMap.at<float>(tri.y[2], tri.x[2]);
+			tri.z[2] = m_ZMap.at<float>(tri.y[2], tri.x[2]) / 1000.0; // micron --> mm
 
 			h = 330 - ((tri.z[1] - dMin) / (dMax - dMin)) * 330;
 

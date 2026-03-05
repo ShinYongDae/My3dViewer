@@ -7,7 +7,6 @@
 #include "afxdialogex.h"
 #include "GlobalDefineAOR.h"
 
-
 // CDlg3DViewer 대화 상자입니다.
 
 IMPLEMENT_DYNAMIC(CDlg3DViewer, CDialog)
@@ -40,6 +39,8 @@ CDlg3DViewer::CDlg3DViewer(CWnd* pParent /*=NULL*/)
 	m_fScan_Range = 0.2;
 	m_fScan_Ramp = 0.2;
 	m_bFitSuccess = FALSE;
+	m_fMax = 20;
+	m_fMin = -20;
 
 	// for OpenGL Rendering
 	m_bOpMode = 0;
@@ -68,6 +69,13 @@ CDlg3DViewer::~CDlg3DViewer()
 	//if (m_pView->m_hWnd)
 	//	delete m_pView;
 
+	if(m_matrixZ.total() > 0)
+		m_matrixZ.release(); // 자동으로 해제되나 명시적 호출 가능
+	if(m_matrixA.total() > 0)
+		m_matrixA.release(); // 자동으로 해제되나 명시적 호출 가능
+
+	cv::setNumThreads(0); // 만약 루프가 너무 많아 누수가 의심되면, Thread 로컬 캐시 정리
+
 	if (m_pView)
 	{
 		m_pView->DestroyWindow();
@@ -94,6 +102,7 @@ void CDlg3DViewer::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_ZOOMOUT, m_ChkZoomOut);
 	DDX_Control(pDX, IDC_CHECK_FIT, m_ChkFit);
 	DDX_Control(pDX, IDC_CHK_ONLY_RESIN, m_ChkOnlyResin);
+	DDX_Control(pDX, IDC_STATIC_VIEW, m_Pic);
 }
 
 
@@ -340,17 +349,20 @@ void CDlg3DViewer::RemoveAllZygoXYZ()
 void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 {
 	m_bFitSuccess = FALSE;
-
 	CString sData = ExtractInfo(sPath);
+
 	cv::Scalar scalarAvg;
-	scalarAvg = cv::mean(m_matrixZ);
+	scalarAvg = cv::mean(m_matrixZ); // memory leak
 	double  dLastAvg = scalarAvg[0];
+	//double  dLastAvg = 1.0;
 
 	double dLastMax = -9999999;
 	double dLastMin = 9999999;
-	minMaxLoc(m_matrixZ, &dLastMin, &dLastMax);
+	minMaxLoc(m_matrixZ, &dLastMin, &dLastMax); // memory leak
 
-	double dAvg = GetDepthAvg(m_matrixZ);
+	double dAvg = GetDepthAvg(m_matrixZ); // memory leak
+	//double dAvg = 1.0;
+
 	int nPixels = m_matrixZ.rows * m_matrixZ.cols;
 	double dStdev = 0;
 	double dVar = 0;
@@ -397,6 +409,12 @@ void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 	S3DData->m_dXResolution = _3D_RESOLUTION;
 	S3DData->m_dYResolution = _3D_RESOLUTION;
 	S3DData->m_bValid = 1;
+
+	//cv::setNumThreads(0);
+	//vec.clear(); // 더 이상 필요 없으면,
+
+	Display3D();
+	Auto3D();
 }
 
 float CDlg3DViewer::GetDepthAvg(cv::Mat &matrixZ)
@@ -436,6 +454,8 @@ float CDlg3DViewer::GetDepthAvg(cv::Mat &matrixZ)
 		fptHist[i].x = i;
 		fptHist[i].y = Imagehist.at<float>(i) * 200.0 / histMax;
 	}
+	//matrixZchar.release();
+	//Imagehist.release();
 
 	vector<IMAGE_HISTOGRAM> vecHist;
 	IMAGE_HISTOGRAM stImageHist;
@@ -562,7 +582,12 @@ float CDlg3DViewer::GetDepthAvg(cv::Mat &matrixZ)
 			dCount += vecLower.at(i).fValue;
 		}
 		nLowerGray = ConvertInt(dLowerGray / dCount);
+
+		//vecLower.clear();
+		//vecUpper.clear();
 	}
+
+	//vecHist.clear();
 
 	float fMidGray = (float)(nUpperGray + nLowerGray) / 2.0;
 
@@ -745,7 +770,8 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 	// 좌표계 회전
 	glRotated(_angleVer, 1, 0, 0);
 	glRotated(_angleHor, 0, 0, 1);
-	glTranslatef(-500, -500, 0);
+	//glTranslatef(-500, -500, 0);
+	glTranslatef(-600, -400, 150);
 
 	m_draw.DrawAxisXYZ(0, 0, 0, 150, 5);
 
@@ -890,11 +916,6 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 
 	}
 
-
-
-
-
-
 	glPopMatrix();
 	glLineWidth(1);
 
@@ -910,4 +931,117 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 	}
 
 	return 0;
+}
+
+
+void CDlg3DViewer::Display3D()
+{
+	SSR3DData* S3DData = Get3DData();
+	cv::Mat matModelIMG = S3DData->m_matDepthMap.clone();
+	cv::Mat dst = m_cMatching.ApplyConvertImageAuto(matModelIMG);
+	m_cMatching.GetRealMinMax(m_fMin, m_fMax);
+	cv::Mat dst2;
+	applyColorMap(dst, dst2, cv::COLORMAP_RAINBOW);
+	if (!dst.empty())
+	{
+		S3DData->m_AmpMatrix = S3DData->m_AmpMatrix.clone();// 강도 이미지???
+		S3DData->m_matDepthMap = S3DData->m_matDepthMap.clone();//보정 안된 높이맵
+		S3DData->m_matDepthMapColor = S3DData->m_matDepthMapColor.clone();
+		S3DData->m_bValid = 1;
+
+		//SendMessage(WM_UPDATE_3D_MODEL, 0, 0);
+
+		m_DefectColor = dst2;
+
+		CRect rectResult;
+		CDC* pDCResult;
+		m_Pic.GetWindowRect(rectResult);
+		cv::resize(dst2, m_Image, cv::Size(rectResult.Width(), rectResult.Height()));
+		pDCResult = m_Pic.GetDC();
+		if (!m_Image.empty())
+		{
+			DrawMat(pDCResult->m_hDC, m_Image);
+		}
+		::ReleaseDC(m_hWnd, pDCResult->m_hDC);
+
+		SendMessage(WM_UPDATE_3D_MODEL, 0, 0);
+	}
+
+	//CString strData;
+	//strData.Format(_T("%.3f"), m_fMin*1000.0);
+	//SetDlgItemText(IDC_EDIT_MIN, strData);
+	//strData.Format(_T("%.3f"), m_fMax*1000.0);
+	//SetDlgItemText(IDC_EDIT_MAX, strData);
+
+}
+
+void CDlg3DViewer::DrawMat(HDC hDC, cv::Mat& img)
+{
+	CV_Assert(!img.empty() && hDC != NULL);
+	int ws = (img.cols + 3) & ~3;
+	DrawMat(hDC, img, 0, 0, ws, img.rows);
+}
+
+void CDlg3DViewer::DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh)
+{
+	CV_Assert(!img.empty() && hDC != NULL);
+
+	int bpp = 8 * img.elemSize();
+	CV_Assert((bpp == 8 || bpp == 24 || bpp == 32));
+
+	int padding = 0;
+	if (bpp < 32) padding = 4 - (img.cols % 4);
+	if (padding == 4) padding = 0;
+
+	if (padding > 0 || img.isContinuous() == false) {
+		cv::copyMakeBorder(img, img, 0, 0, 0, padding, cv::BORDER_CONSTANT, 0);
+	}
+
+	uchar buffer[sizeof(BITMAPINFO) + 255 * sizeof(RGBQUAD)];
+	BITMAPINFO* binfo = (BITMAPINFO*)buffer;
+
+	BITMAPINFOHEADER* bmih = &(binfo->bmiHeader);
+	memset(bmih, 0, sizeof(*bmih));
+	bmih->biSize = sizeof(BITMAPINFOHEADER);
+	bmih->biWidth = img.cols;
+	bmih->biHeight = -abs(img.rows);
+	bmih->biPlanes = 1;
+	bmih->biBitCount = (unsigned short)bpp;
+	bmih->biCompression = BI_RGB;
+
+	if (img.channels() == 1) {
+		RGBQUAD* palette = binfo->bmiColors;
+		for (int i = 0; i < 256; i++) {
+			palette[i].rgbBlue = palette[i].rgbGreen = palette[i].rgbRed = (uchar)i;
+			palette[i].rgbReserved = 0;
+		}
+	}
+
+	if (img.cols == dw && img.rows == dh) {
+		::SetDIBitsToDevice(hDC,	// hdc
+			x,				// DestX
+			y,				// DestY
+			img.cols,		// nSrcWidth
+			img.rows,		// nSrcHeight
+			0,				// SrcX
+			0,				// SrcY
+			0,				// nStartScan
+			img.rows,		// nNumScans
+			img.data,		// lpBits
+			binfo,			// lpBitsInfo
+			DIB_RGB_COLORS);	// wUsage
+	}
+	else {
+		SetStretchBltMode(hDC, COLORONCOLOR);
+		::StretchDIBits(hDC,
+			x, y, dw, dh,
+			0, 0, img.cols, img.rows,
+			img.data, binfo, DIB_RGB_COLORS, SRCCOPY);
+	}
+}
+
+
+void CDlg3DViewer::Auto3D()
+{
+
 }

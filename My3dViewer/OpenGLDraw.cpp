@@ -1548,22 +1548,39 @@ void COpenGLDraw::DrawText(CString strText, GLdouble x, GLdouble y, GLdouble z, 
 
 	SetColor(color);
 
-	glScalef(1.0f*fFontSize, 1.0f*fFontSize, z);
-	
-	TCHAR* pText;
-	pText = strText.GetBuffer(0); // GetBuffer(0): strText가 가지고 있는 문자열의 만큼 가지고 온다
-
-#ifdef _WIN64
+//	glScalef(1.0f*fFontSize, 1.0f*fFontSize, z);
+//	
+//	TCHAR* pText;
+//	pText = strText.GetBuffer(0); // GetBuffer(0): strText가 가지고 있는 문자열의 만큼 가지고 온다
+//
+//#ifdef _WIN64
+//	while (*pText)
+//		glutStrokeCharacter(GLUT_STROKE_ROMAN, *pText++);
+//#else
 //	while(*pText)
 //		glutStrokeCharacter(GLUT_STROKE_ROMAN, *pText++);
+//#endif
+
+#ifdef _UNICODE
+	char * chText = StringToChar(strText);
 #else
-	while(*pText)
-		glutStrokeCharacter(GLUT_STROKE_ROMAN, *pText++);
+
+	char *chText = strText.GetBuffer(0);
 #endif
+	//double dScale = fFontSize / 150.0;
+	//glColor4f(GetRValue(color) / 255.0, GetGValue(color) / 255.0, GetBValue(color) / 255.0, 1.0);
+	//glScalef(dScale, dScale, 1);
+	//DrawBMPFont(chText);
+
 	
 	glPopMatrix();
-
 	glLineWidth(lineWidth);
+
+#ifdef _UNICODE
+	delete chText;
+	chText = NULL;
+#endif
+
 }
 
 void COpenGLDraw::DrawLine(const CdPoint3D &fptStart,const CdPoint3D &fptEnd)
@@ -2402,9 +2419,12 @@ void COpenGLDraw::DrawAxisXYZ(GLfloat Position_X,GLfloat Position_Y,GLfloat Posi
 	
 	
 	
-	DrawText(_T("X+"),Length+1,0,Position_Z,0.1,0.1,RGB(255,0,0));
-	DrawText(_T("Y+"),0,Length+1,Position_Z,0.1,0.1,RGB(0,255,0));
-	DrawText(_T("Z+"),0,0,Length+1+Position_Z,0.1,0.1,RGB(0,0,255));
+	DrawText(_T("X+"),Length+10,0,Position_Z,0.1,0.1,RGB(255,0,0));
+	DrawText(_T("Y+"),0,Length+10,Position_Z,0.1,0.1,RGB(0,255,0));
+	DrawText(_T("Z+"),0,0,Length+10+Position_Z,0.1,0.1,RGB(0,0,255));
+	//DrawText(_T("X+"),Length+1,0,Position_Z,0.1,0.1,RGB(255,0,0));
+	//DrawText(_T("Y+"),0,Length+1,Position_Z,0.1,0.1,RGB(0,255,0));
+	//DrawText(_T("Z+"),0,0,Length+1+Position_Z,0.1,0.1,RGB(0,0,255));
 	glPopMatrix();
 	glLineWidth(lineWidth);
 }
@@ -2446,3 +2466,21 @@ void COpenGLDraw::DrawLine(const CdPoint3D* pVtArray,int nPtNum,int Flag,double 
 	glLineWidth(lineWidth);
 }
 
+char* COpenGLDraw::StringToChar(CString str)
+{
+	char*		szStr = NULL;
+	wchar_t*	wszStr;
+	int				nLenth;
+
+	USES_CONVERSION;
+	//1. CString to wchar_t* conversion
+	wszStr = T2W(str.GetBuffer(str.GetLength()));
+
+	//2. wchar_t* to char* conversion
+	nLenth = WideCharToMultiByte(CP_ACP, 0, wszStr, -1, NULL, 0, NULL, NULL); //char* 형에 대한길이를 구함 
+	szStr = new char[nLenth];  //메모리 할당 
+
+							   //3. wchar_t* to char* conversion
+	WideCharToMultiByte(CP_ACP, 0, wszStr, -1, szStr, nLenth, 0, 0);
+	return szStr;
+}

@@ -31,6 +31,8 @@ using namespace std;
 
 class COpenGLDraw : public GInterPolation, public COpenGLFontCam
 {
+	char* StringToChar(CString str);
+
 private:
 	int     m_nDrawMinArcVertex;
 	GLfloat m_fDrawResolution;

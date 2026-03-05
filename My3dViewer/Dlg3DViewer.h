@@ -4,6 +4,8 @@
 #include "OpenGLDraw.h"
 #include "ReferenceData.h"
 #include "C3DModel.h"
+#include "Matching.h"
+#include "afxwin.h"
 
 // CDlg3DViewer 대화 상자입니다.
 struct stTagZygoXYZ
@@ -33,6 +35,8 @@ class CDlg3DViewer : public CDialog
 	stTagZygoInfo3D m_stZygoInfo3D;
 	BOOL m_bFitSuccess;
 	//sPlane m_RefPlane;
+	cv::Mat m_DefectColor;
+	cv::Mat m_Image;
 
 	int m_nPolygonDrawVertex;
 	CPoint m_ptPolygon[100];
@@ -41,6 +45,7 @@ class CDlg3DViewer : public CDialog
 	CPoint m_ptPrePoint;
 	int m_nSelectDrawType;
 	BOOL m_bUseCurve;
+	float m_fMax, m_fMin;
 
 	BOOL m_bOnlyResin;
 	CButton m_ChkRectZoom;
@@ -49,6 +54,17 @@ class CDlg3DViewer : public CDialog
 	CButton m_ChkFit;
 	CButton m_ChkOnlyResin;
 
+	float GetDepthAvg(cv::Mat &matrixZ);
+	cv::Mat calcGrayHist(const cv::Mat& img);
+	CString ExtractInfo(CString sPath);
+	TCHAR* StringToTCHAR(CString str);
+	void StringToTCHAR(CString str, TCHAR* tszStr);
+	void RemoveAllZygoXYZ();
+
+	void Display3D();
+	void Auto3D();
+
+private:
 	// for OpenGL Rendering
 	BOOL m_bOpMode; // IDC_CHECK_ZOOM
 	int _mouseButton;
@@ -59,18 +75,15 @@ class CDlg3DViewer : public CDialog
 	double _angleVer;
 	double _fovAngle;
 
-	float GetDepthAvg(cv::Mat &matrixZ);
-	cv::Mat calcGrayHist(const cv::Mat& img);
-	CString ExtractInfo(CString sPath);
-	TCHAR* StringToTCHAR(CString str);
-	void StringToTCHAR(CString str, TCHAR* tszStr);
-	void RemoveAllZygoXYZ();
+	void DrawMat(HDC hDC, cv::Mat& img);
+	void DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh);
 
 public:
 	CDlg3DViewer(CWnd* pParent = NULL);   // 표준 생성자입니다.
 	virtual ~CDlg3DViewer();
 
 public:
+	Matching m_cMatching;
 	C3DModel m_Model;
 	float m_fpos_start; // [mm]
 	float m_fpos_end; // [mm]
@@ -102,4 +115,5 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	virtual BOOL OnInitDialog();
+	CStatic m_Pic;
 };

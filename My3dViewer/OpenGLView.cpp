@@ -79,7 +79,8 @@ COpenGLView::COpenGLView()
 
 	m_fFOV = 1.0f;
 	m_fNear = 0.1f;
-	m_fFar = -5000000.0f;
+	//m_fFar = -5000000.0f;
+	m_fFar = -50000.0f;
 
 	m_nCursorType =0;
 	m_nCursorSize = 0;
@@ -440,12 +441,12 @@ void COpenGLView::GLRenderScene(UINT nAction, int nKey)
  	glMatrixMode(GL_MODELVIEW);
  	glLoadIdentity();
 	
-	//glRotatef(m_fptCamAngle.z,0.0f,0.0f,1.0f);
-	//glTranslated(m_fptCamPos.x,m_fptCamPos.y,m_fptCamPos.z);
-	//SetCanvasPixelResolution();
 	glRotatef(m_fptCamAngle.z, 0.0f, 0.0f, 1.0f);
-	glTranslated(m_fptCamPos.x, m_fptCamPos.y, m_fptCamPos.z/100.0);
+	glTranslated(m_fptCamPos.x, m_fptCamPos.y, m_fptCamPos.z);
 	SetCanvasPixelResolution();
+	//glRotatef(m_fptCamAngle.z, 0.0f, 0.0f, 1.0f);
+	//glTranslated(m_fptCamPos.x, m_fptCamPos.y, m_fptCamPos.z/100.0);
+	//SetCanvasPixelResolution();
 
 	CdPoint3D fptExtent1,fptExtent2;
 	fptExtent1=ScreenToWorld(CPoint(0,0));

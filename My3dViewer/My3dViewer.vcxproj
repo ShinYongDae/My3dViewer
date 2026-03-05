@@ -204,6 +204,7 @@
     <ClInclude Include="GlobalDefine.h" />
     <ClInclude Include="GlobalDefineAOR.h" />
     <ClInclude Include="GvisMath.h" />
+    <ClInclude Include="Matching.h" />
     <ClInclude Include="My3dViewer.h" />
     <ClInclude Include="My3dViewerDlg.h" />
     <ClInclude Include="OpenGLDraw.h" />
@@ -221,6 +222,7 @@
     <ClCompile Include="Dlg3DViewer.cpp" />
     <ClCompile Include="glInfo.cpp" />
     <ClCompile Include="GvisMath.cpp" />
+    <ClCompile Include="Matching.cpp" />
     <ClCompile Include="My3dViewer.cpp" />
     <ClCompile Include="My3dViewerDlg.cpp" />
     <ClCompile Include="OpenGLDraw.cpp" />
