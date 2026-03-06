@@ -175,8 +175,8 @@ LRESULT CDlg3DViewer::OnUpdate3DModel(WPARAM wParam, LPARAM lParam)
 
 			m_Model.MakeModel();
 			double yScale, xScale;
-			yScale = 1000 / S3DData->m_matDepthMap.rows;
-			xScale = 1000 / S3DData->m_matDepthMap.cols;
+			yScale = 1000.0 / (double)S3DData->m_matDepthMap.rows;
+			xScale = 1000.0 / (double)S3DData->m_matDepthMap.cols;
 			m_Model.ApplyScaleAndOffset(0, 0, 0, xScale, yScale, 5000);
 		}
 	}
@@ -816,11 +816,11 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 		if (!S3DData->m_matDepthMap.empty())
 		{
 //#if USE_3D_HELICAM == USE
-			yScale = 1000 / S3DData->m_matDepthMap.rows;
-			xScale = 1000 / S3DData->m_matDepthMap.cols;
+			yScale = 1000.0 / (double)S3DData->m_matDepthMap.rows;
+			xScale = 1000.0 / (double)S3DData->m_matDepthMap.cols;
 //#elif USE_3D_GFV == USE
-//			yScale = 686.0 / S3DData->m_matDepthMap.rows;
-//			xScale = 1000.0 / S3DData->m_matDepthMap.cols;
+//			yScale = 686.0 / (double)S3DData->m_matDepthMap.rows;
+//			xScale = 1000.0 / (double)S3DData->m_matDepthMap.cols;
 //#endif
 
 		}
@@ -967,8 +967,8 @@ void CDlg3DViewer::Display3D()
 	SSR3DData* S3DData = Get3DData();
 	cv::Mat matModelIMG = S3DData->m_matDepthMap.clone();
 	cv::Mat dst = m_cMatching.ApplyConvertImageAuto(matModelIMG);
-	m_cMatching.GetAverage(m_fMin, m_fMax);
-	//m_cMatching.GetMinMax(m_fMin, m_fMax);
+	//m_cMatching.GetAverage(m_fMin, m_fMax);
+	m_cMatching.GetMinMax(m_fMin, m_fMax);
 	//m_cMatching.GetRealMinMax(m_fMin, m_fMax);
 	cv::Mat dst2;
 	applyColorMap(dst, dst2, cv::COLORMAP_RAINBOW);

@@ -157,16 +157,22 @@ void Matching::ApplyUpperRange(cv::Mat &mat3D)
 	double dDiff = dMax - dMin;
 	dAvg /= nPixels;
 	m_dAverageUpper = dAvg;
+
+	nPixels = 0;
 	for (int j = 0; j < mat3D.rows; j++)
 	{
 		for (int i = 0; i < mat3D.cols; i++)
 		{
 			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
-			dVar += (dAvg - fColor)*(dAvg - fColor);
+			if (fColor > m_dAverage)
+			{
+				dVar += (dAvg - fColor)*(dAvg - fColor);
+				nPixels++;
+			}
 		}
 	}
 	dStdev = sqrt(dVar / nPixels);
-	m_fMax = m_dAverageUpper;
+	m_fMax = m_dAverageUpper + dStdev;
 	//m_fMax = m_dAverage + dStdev;
 	//m_fMax = dAvg + dStdev;
 }
@@ -198,16 +204,22 @@ void Matching::ApplyLowerRange(cv::Mat &mat3D)
 	double dDiff = dMax - dMin;
 	dAvg /= nPixels;
 	m_dAverageLower = dAvg;
+
+	nPixels = 0;
 	for (int j = 0; j < mat3D.rows; j++)
 	{
 		for (int i = 0; i < mat3D.cols; i++)
 		{
 			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
-			dVar += (dAvg - fColor)*(dAvg - fColor);
+			if (fColor < m_dAverage)
+			{
+				dVar += (dAvg - fColor)*(dAvg - fColor);
+				nPixels++;
+			}
 		}
 	}
 	dStdev = sqrt(dVar / nPixels);
-	m_fMin = m_dAverageLower;
+	m_fMin = m_dAverageLower - dStdev;
 	//m_fMin = m_dAverage - dStdev;
 	//m_fMin = dAvg - dStdev;
 }
