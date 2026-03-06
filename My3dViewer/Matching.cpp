@@ -16,8 +16,8 @@ double Matching::GetMatchSdScore()
 
 Matching::Matching()
 {
-	m_fRealMin = m_fMin = -20;
-	m_fRealMax = m_fMax = 20;
+	m_fRealMin = m_fMin = -0.1;
+	m_fRealMax = m_fMax = 0.1;
 	m_fScaleX = m_fScaleY = 4.26;
 	m_fMatchTheta = 0;
 	m_ptMatchLoc = cv::Point(0, 0);

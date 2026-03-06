@@ -55,6 +55,10 @@ CMy3dViewerDlg::CMy3dViewerDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(IDD_MY3DVIEWER_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+	m_viewer.SetParentWnd(this);
+	m_fMax = 0.1;
+	m_fMin = -0.1;
 }
 
 CMy3dViewerDlg::~CMy3dViewerDlg()
@@ -69,6 +73,7 @@ void CMy3dViewerDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_VIEW, m_Pic);
+	DDX_Control(pDX, IDC_VIEW_COLOR_BAR, m_PicColorBar);
 }
 
 BEGIN_MESSAGE_MAP(CMy3dViewerDlg, CDialog)
@@ -79,6 +84,7 @@ BEGIN_MESSAGE_MAP(CMy3dViewerDlg, CDialog)
 	ON_WM_SHOWWINDOW()
 	ON_WM_MOVE()
 	ON_WM_DESTROY()
+	ON_BN_CLICKED(IDC_BUTTON2, &CMy3dViewerDlg::OnBnClickedButton2)
 END_MESSAGE_MAP()
 
 
@@ -114,9 +120,34 @@ BOOL CMy3dViewerDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
-	m_Pic.GetWindowRect(m_rectResult);
+	m_PicColorBar.GetWindowRect(m_rectResult);
+
+	CString sPath = _T("C:\\AorSet\\colors.jpg");
+	//CString sPath = _T("C:\\AorSet\\colorscale_rainbow.jpg");
+	CFileFind cFile;
+	BOOL bExist = cFile.FindFile(sPath);
+	if (!bExist)
+		AfxMessageBox(_T("Not exist colorscale_rainbow.jpg"));
+
+	char * chText = StringToChar(sPath);
+	//cv::Mat matRainbow = cv::imread("C:\\AorSet\\colors.jpg", cv::IMREAD_UNCHANGED);
+	//cv::Mat matRainbow = cv::imread(chText, cv::IMREAD_UNCHANGED);
+	m_matRainbow = cv::imread(chText, cv::IMREAD_UNCHANGED);
+	delete chText;
+
+	if (!m_matRainbow.empty())
+		cv::resize(m_matRainbow, m_ImageColorBar, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
+	//if (!matRainbow.empty())
+	//	cv::resize(matRainbow, m_ImageColorBar, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
+
 	m_viewer.Create(IDD_DLG_3D, this);
-	m_matRainbow = cv::imread("C:/AorSet/colorscale_rainbow.jpg", cv::IMREAD_UNCHANGED);
+
+	CString sData;
+	sData.Format(_T("%.6f"), m_fMin);
+	SetDlgItemText(IDC_EDIT_MIN, sData);
+	sData.Format(_T("%.6f"), m_fMax);
+	SetDlgItemText(IDC_EDIT_MAX, sData);
+
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -287,15 +318,16 @@ void CMy3dViewerDlg::RefreshDlg()
 		m_viewer.SetWindowPos(NULL, rtDlg.left, rtDlg.top, nWidthDlg, nHeightDlg, SWP_NOZORDER | SWP_NOACTIVATE);
 		m_viewer.ShowWindow(SW_SHOW);
 
-		if(!m_matRainbow.empty())
-			cv::resize(m_matRainbow, m_Image, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
+		//if(!m_matRainbow.empty())
+		//	cv::resize(m_matRainbow, m_ImageColorBar, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
 
-		if (m_Pic.GetSafeHwnd())
+
+		if (m_PicColorBar.GetSafeHwnd())
 		{
-			CDC* pDCResult = m_Pic.GetDC();
-			if (!m_Image.empty())
+			CDC* pDCResult = m_PicColorBar.GetDC();
+			if (!m_ImageColorBar.empty())
 			{
-				DrawMat(pDCResult->m_hDC, m_Image);
+				DrawMat(pDCResult->m_hDC, m_ImageColorBar);
 			}
 			ReleaseDC(pDCResult);
 		}
@@ -374,4 +406,58 @@ void CMy3dViewerDlg::OnDestroy()
 
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 	m_viewer.DispFree();
+}
+
+char* CMy3dViewerDlg::StringToChar(CString str)
+{
+	char*		szStr = NULL;
+	wchar_t*	wszStr;
+	int				nLenth;
+
+	USES_CONVERSION;
+	//1. CString to wchar_t* conversion
+	wszStr = T2W(str.GetBuffer(str.GetLength()));
+
+	//2. wchar_t* to char* conversion
+	nLenth = WideCharToMultiByte(CP_ACP, 0, wszStr, -1, NULL, 0, NULL, NULL); //char* 형에 대한길이를 구함 
+	szStr = new char[nLenth];  //메모리 할당 
+
+							   //3. wchar_t* to char* conversion
+	WideCharToMultiByte(CP_ACP, 0, wszStr, -1, szStr, nLenth, 0, 0);
+	return szStr;
+}
+
+
+void CMy3dViewerDlg::GetMinMax(float& fMin, float& fMax)
+{
+	CString sData;
+	GetDlgItemText(IDC_EDIT_MIN, sData);
+	m_fMin = _tstof(sData);
+	GetDlgItemText(IDC_EDIT_MAX, sData);
+	m_fMax = _tstof(sData);
+
+	fMin = m_fMin;
+	fMax = m_fMax;
+}
+
+void CMy3dViewerDlg::SetMinMax(float fMin, float fMax)
+{
+	m_fMin = fMin;
+	m_fMax = fMax;
+
+	CString sData;
+	sData.Format(_T("%.6f"), m_fMin);
+	SetDlgItemText(IDC_EDIT_MIN, sData);
+	sData.Format(_T("%.6f"), m_fMax);
+	SetDlgItemText(IDC_EDIT_MAX, sData);
+}
+
+void CMy3dViewerDlg::OnBnClickedButton2()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	//cv::Mat matRainbow = cv::imread("C:\\AorSet\\colors.jpg");// , cv::IMREAD_UNCHANGED);
+	//if (!matRainbow.empty())
+	//	cv::resize(matRainbow, m_ImageColorBar, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
+	float fMin, fMax;
+	GetMinMax(fMin, fMax);
 }

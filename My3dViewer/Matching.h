@@ -8,7 +8,7 @@
 class Matching
 {
 private:
-	float m_fMin, m_fMax;
+	float m_fMin, m_fMax; // [mm]
 	float m_fRealMin, m_fRealMax;
 	float m_fScaleX,m_fScaleY;
 	float m_fMatchTheta;

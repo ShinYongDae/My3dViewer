@@ -123,8 +123,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>C:\opencv\opencv\build\x64\vc14\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world453.lib;opencv_world453d.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>opencv_world453.dll;opencv_world453d.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>opencv_world453d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>opencv_world453d.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>

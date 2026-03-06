@@ -26,6 +26,7 @@ class CDlg3DViewer : public CDialog
 {
 	DECLARE_DYNAMIC(CDlg3DViewer)
 
+	CWnd* m_pParentWnd;
 	COpenGLViewEx* m_pView;
 	COpenGLDraw m_draw;
 	CReferenceData *m_pReferenceData[REFER_BUFFER];
@@ -100,6 +101,10 @@ public:
 	SSR3DData* Get3DData();
 	void SetPosition(float fCurPos);
 	void DispFree();
+
+	void SetParentWnd(CWnd* pParentWnd);
+	void GetMinMax(float& fMin, float& fMax);
+	void SetMinMax(float fMin, float fMax);
 
 public:
 	LRESULT OnUpdate3DModel(WPARAM wParam, LPARAM lParam);

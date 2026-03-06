@@ -6,6 +6,7 @@
 #include "Dlg3DViewer.h"
 #include "afxdialogex.h"
 #include "GlobalDefineAOR.h"
+#include "My3dViewerDlg.h"
 
 // CDlg3DViewer 대화 상자입니다.
 
@@ -14,6 +15,8 @@ IMPLEMENT_DYNAMIC(CDlg3DViewer, CDialog)
 CDlg3DViewer::CDlg3DViewer(CWnd* pParent /*=NULL*/)
 	: CDialog(IDD_DLG_3D, pParent)
 {
+	m_pParentWnd = pParent;
+
 	m_nSelectDrawType = SHAPE::SHAPE_NONE;
 	m_nPolygonDrawVertex = 0;
 	for (int i = 0; i < 100; i++)
@@ -39,8 +42,8 @@ CDlg3DViewer::CDlg3DViewer(CWnd* pParent /*=NULL*/)
 	m_fScan_Range = 0.2;
 	m_fScan_Ramp = 0.2;
 	m_bFitSuccess = FALSE;
-	m_fMax = 20;
-	m_fMin = -20;
+	m_fMax = 0.1;
+	m_fMin = -0.1;
 
 	// for OpenGL Rendering
 	m_bOpMode = 0;
@@ -205,7 +208,7 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 	TCHAR seps[] = _T(" ");
 	TCHAR *token;
 	TCHAR tszStr[MAX_PATH];
-	CString sResH, sResV;
+	CString sResH, sResV, sTotCols, sTotRows;
 	BOOL bPhaseData = FALSE;
 	int nColY, nRowX;
 	float fMicronZ;
@@ -271,6 +274,25 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 					else if(nCol == 7)
 					{
 						sResV.Format(_T("%s"), token);
+					}
+					token = _tcstok(NULL, seps);
+				}
+				nCol = 0;
+			}
+			else if (nLine == 9)
+			{
+				StringToTCHAR(str, tszStr);
+				token = _tcstok(tszStr, seps); //문자열을 기준에 따라 token에 임시 저장한다.
+				while (token != NULL)
+				{
+					nCol++;
+					if (nCol == 1)
+					{
+						sTotCols.Format(_T("%s"), token);
+					}
+					else if(nCol == 2)
+					{
+						sTotRows.Format(_T("%s"), token);
 					}
 					token = _tcstok(NULL, seps);
 				}
@@ -414,6 +436,7 @@ void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 	//vec.clear(); // 더 이상 필요 없으면,
 	Prepare3D();
 	Display3D();
+	((CMy3dViewerDlg*)m_pParentWnd)->SetMinMax(m_fMin, m_fMax);
 	Auto3D();
 }
 
@@ -1049,6 +1072,22 @@ void CDlg3DViewer::DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh)
 	}
 }
 
+void CDlg3DViewer::SetParentWnd(CWnd* pParentWnd)
+{
+	m_pParentWnd = pParentWnd;
+}
+
+void CDlg3DViewer::GetMinMax(float& fMin, float& fMax)
+{
+	fMin = m_fMin;
+	fMax = m_fMax;
+}
+
+void CDlg3DViewer::SetMinMax(float fMin, float fMax)
+{
+	m_fMin = fMin;
+	m_fMax = fMax;
+}
 
 void CDlg3DViewer::Auto3D()
 {

@@ -15,14 +15,16 @@
 class CMy3dViewerDlg : public CDialog
 {
 	cv::Mat m_matRainbow;
-	cv::Mat m_Image;
+	cv::Mat m_Image, m_ImageColorBar;
 	CRect m_rectResult;
+	float m_fMax, m_fMin; // [mm]
 
 	BOOL FileBrowse(CString& sPath);
 	void Refresh();
 	void RefreshDlg();
 	void DrawMat(HDC hDC, cv::Mat& img);
 	void DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh);
+	char* StringToChar(CString str);
 
 // 생성입니다.
 public:
@@ -35,7 +37,10 @@ public:
 
 public:
 	CDlg3DViewer m_viewer;
+	CStatic m_Pic, m_PicColorBar;
 
+	void GetMinMax(float& fMin, float& fMax);
+	void SetMinMax(float fMin, float fMax);
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 지원입니다.
@@ -55,6 +60,6 @@ public:
 	afx_msg void OnBnClickedButton1();
 	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 	afx_msg void OnMove(int x, int y);
-	CStatic m_Pic;
 	afx_msg void OnDestroy();
+	afx_msg void OnBnClickedButton2();
 };
