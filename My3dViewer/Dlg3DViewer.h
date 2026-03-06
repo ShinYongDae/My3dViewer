@@ -64,6 +64,7 @@ class CDlg3DViewer : public CDialog
 
 	void Prepare3D();
 	void Display3D();
+	void Display3D(float fMin, float fMax);
 	void Auto3D();
 
 private:
@@ -105,7 +106,7 @@ public:
 	void SetParentWnd(CWnd* pParentWnd);
 	void GetMinMax(float& fMin, float& fMax);
 	void SetMinMax(float fMin, float fMax);
-
+	void AdjustRange(float fMin, float fMax);
 public:
 	LRESULT OnUpdate3DModel(WPARAM wParam, LPARAM lParam);
 	LRESULT OnGLRender(WPARAM wParam, LPARAM lParam);

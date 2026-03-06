@@ -36,7 +36,7 @@ public:
 	vector<cv::Point> m_vecThinningPt;
 	cv::Mat m_matLineWidth;
 	
-	double m_dAverage;
+	double m_dAverage, m_dAverageUpper, m_dAverageLower;
 	double m_dStdev;
 
 	BOOL m_bNotDefact;
@@ -53,6 +53,8 @@ public:
 
 	/////20190320 JCH 
 	void GetRealMinMax(float &fRealMin, float &fRealMax);
+	void GetMinMax(float &fMin, float &fMax);
+	void GetAverage(float &fLower, float &fUpper);
 
 	void SetMatchScole(double dScole);
 	double GetMatchSdScore();
@@ -81,6 +83,9 @@ public:
 	/////////////////////////
 	//20190930 JCH 
 	void ApplyMinMaxAuto(cv::Mat &mat3D);
+	void ApplyRangeAuto(cv::Mat &mat3D);
+	void ApplyUpperRange(cv::Mat &mat3D);
+	void ApplyLowerRange(cv::Mat &mat3D);
 
 
 

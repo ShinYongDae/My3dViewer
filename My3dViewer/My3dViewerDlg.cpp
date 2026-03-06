@@ -460,4 +460,5 @@ void CMy3dViewerDlg::OnBnClickedButton2()
 	//	cv::resize(matRainbow, m_ImageColorBar, cv::Size(m_rectResult.Width(), m_rectResult.Height()));
 	float fMin, fMax;
 	GetMinMax(fMin, fMax);
+	m_viewer.AdjustRange(fMin, fMax);
 }

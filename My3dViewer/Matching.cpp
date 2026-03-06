@@ -44,10 +44,14 @@ cv::Mat Matching::ApplyConvertImageAuto(cv::Mat mat3D)
 	m_fRealMin = 999999;
 	m_fRealMax = -999999;
 	m_dAverage = 0;
+	m_dAverageUpper = 0;
+	m_dAverageLower = 0;
 	m_dStdev = 0;
 	cv::Mat dst;
-	ApplyMinMaxAuto(mat3D);
-	dst = ApplyGrayScaleAuto(mat3D);
+	//ApplyMinMaxAuto(mat3D);
+	ApplyRangeAuto(mat3D);
+	//dst = ApplyGrayScaleAuto(mat3D);
+	dst = ApplyGrayScale(mat3D);
 
 	return dst;
 }
@@ -59,17 +63,15 @@ cv::Mat Matching::ApplyConvertImage(cv::Mat mat3D, float fMin, float fMax)
 	m_fMin = fMin;
 	m_fMax = fMax;
 	m_dAverage = 0;
+	m_dAverageUpper = 0;
+	m_dAverageLower = 0;
 	m_dStdev = 0;
 	cv::Mat dst;
 	ApplyMinMax(mat3D);
 	dst = ApplyGrayScale(mat3D);
 
-
-
-
 	return dst;
 }
-
 
 void Matching::ApplyMinMaxAuto(cv::Mat &mat3D)
 {
@@ -121,33 +123,17 @@ void Matching::ApplyMinMaxAuto(cv::Mat &mat3D)
 
 }
 
-
-
-void Matching::ApplyMinMax(cv::Mat &mat3D)
+void Matching::ApplyRangeAuto(cv::Mat &mat3D)
 {
+	ApplyMinMaxAuto(mat3D);
+	ApplyUpperRange(mat3D);
+	ApplyLowerRange(mat3D);
+}
 
-	for (int j = 0; j < mat3D.rows; j++)
-	{
-		for (int i = 0; i < mat3D.cols; i++)
-		{
-			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
-			if (fColor > m_fRealMax)
-			{
-				m_fRealMax = fColor;
-			}
-			else if (fColor < m_fRealMin)
-			{
-				m_fRealMin = fColor;
-			}
-		}
-	}
-
-	double dDiff = m_fRealMax - m_fRealMin;
-
-	if (fabs(dDiff > (m_fMax - m_fMin)))
-	{
-		int qwe = 0;
-	}
+void Matching::ApplyUpperRange(cv::Mat &mat3D)
+{
+	double dMax = -99999;
+	double dMin = 99999;
 
 	double dAvg = 0;
 	int nPixels = 0;
@@ -159,6 +145,112 @@ void Matching::ApplyMinMax(cv::Mat &mat3D)
 		for (int i = 0; i < mat3D.cols; i++)
 		{
 			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
+			if (fColor > m_dAverage)
+			{
+				if (fColor >= dMax) dMax = fColor;				
+				else if (fColor <= dMin) dMin = fColor;
+				dAvg += fColor;
+				nPixels++;
+			}
+		}
+	}
+	double dDiff = dMax - dMin;
+	dAvg /= nPixels;
+	m_dAverageUpper = dAvg;
+	for (int j = 0; j < mat3D.rows; j++)
+	{
+		for (int i = 0; i < mat3D.cols; i++)
+		{
+			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
+			dVar += (dAvg - fColor)*(dAvg - fColor);
+		}
+	}
+	dStdev = sqrt(dVar / nPixels);
+	m_fMax = m_dAverageUpper;
+	//m_fMax = m_dAverage + dStdev;
+	//m_fMax = dAvg + dStdev;
+}
+
+void Matching::ApplyLowerRange(cv::Mat &mat3D)
+{
+	double dMax = -99999;
+	double dMin = 99999;
+
+	double dAvg = 0;
+	int nPixels = 0;
+	double dStdev = 0;
+	double dVar = 0;
+
+	for (int j = 0; j < mat3D.rows; j++)
+	{
+		for (int i = 0; i < mat3D.cols; i++)
+		{
+			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
+			if (fColor < m_dAverage)
+			{
+				if (fColor >= dMax) dMax = fColor;
+				else if (fColor <= dMin) dMin = fColor;
+				dAvg += fColor;
+				nPixels++;
+			}
+		}
+	}
+	double dDiff = dMax - dMin;
+	dAvg /= nPixels;
+	m_dAverageLower = dAvg;
+	for (int j = 0; j < mat3D.rows; j++)
+	{
+		for (int i = 0; i < mat3D.cols; i++)
+		{
+			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
+			dVar += (dAvg - fColor)*(dAvg - fColor);
+		}
+	}
+	dStdev = sqrt(dVar / nPixels);
+	m_fMin = m_dAverageLower;
+	//m_fMin = m_dAverage - dStdev;
+	//m_fMin = dAvg - dStdev;
+}
+
+
+void Matching::ApplyMinMax(cv::Mat &mat3D)
+{
+
+	//for (int j = 0; j < mat3D.rows; j++)
+	//{
+	//	for (int i = 0; i < mat3D.cols; i++)
+	//	{
+	//		float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
+	//		if (fColor > m_fRealMax)
+	//		{
+	//			m_fRealMax = fColor;
+	//		}
+	//		else if (fColor < m_fRealMin)
+	//		{
+	//			m_fRealMin = fColor;
+	//		}
+	//	}
+	//}
+
+	//double dDiff = m_fRealMax - m_fRealMin;
+
+	//if (fabs(dDiff > (m_fMax - m_fMin)))
+	//{
+	//	int qwe = 0;
+	//}
+
+	double dAvg = 0;
+	int nPixels = 0;
+	double dStdev = 0;
+	double dVar = 0;
+
+	for (int j = 0; j < mat3D.rows; j++)
+	{
+		for (int i = 0; i < mat3D.cols; i++)
+		{
+			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
+			if (fColor > m_fMax) fColor = m_fMax;
+			else if (fColor < m_fMin) fColor = m_fMin;
 
 			dAvg += fColor;
 			nPixels++;
@@ -196,23 +288,24 @@ void Matching::ApplyMinMax(cv::Mat &mat3D)
 	//		mat3D.at<float>(j, i) = fColor;
 	//	}
 	//}
-	m_fRealMax = -99999;
-	m_fRealMin = 99999;
-	for (int j = 0; j < mat3D.rows; j++)
-	{
-		for (int i = 0; i < mat3D.cols; i++)
-		{
-			float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
-			if (fColor > m_fRealMax)
-			{
-				m_fRealMax = fColor;
-			}
-			else if (fColor < m_fRealMin)
-			{
-				m_fRealMin = fColor;
-			}
-		}
-	}
+
+	//m_fRealMax = -99999;
+	//m_fRealMin = 99999;
+	//for (int j = 0; j < mat3D.rows; j++)
+	//{
+	//	for (int i = 0; i < mat3D.cols; i++)
+	//	{
+	//		float fColor = mat3D.at<float>(j, i);// 한 픽셀식 검사 
+	//		if (fColor > m_fRealMax)
+	//		{
+	//			m_fRealMax = fColor;
+	//		}
+	//		else if (fColor < m_fRealMin)
+	//		{
+	//			m_fRealMin = fColor;
+	//		}
+	//	}
+	//}
 
 
 
@@ -230,7 +323,6 @@ cv::Mat Matching::ApplyGrayScale(cv::Mat mat3D)
 		for (int i = 0; i < mat3D.cols; i++)
 		{
 			float fColor = mat3D.at<float>(j, i);
-
 
 			int nValue = 255 - ConvertInt((fColor - m_fMin) / (m_fMax - m_fMin) * 255.0);
 			if (nValue < 0)
@@ -275,11 +367,25 @@ cv::Point Matching::GetMatchPt()
 {
 	return m_ptMatchLoc;
 }
+
+void Matching::GetAverage(float &fLower, float &fUpper)
+{
+	fLower = (float)m_dAverageLower;
+	fUpper = (float)m_dAverageUpper;
+}
+
+void Matching::GetMinMax(float &fMin, float &fMax)
+{
+	fMin = m_fMin;
+	fMax = m_fMax;
+}
+
 void Matching::GetRealMinMax(float &fRealMin, float &fRealMax)
 {
 	fRealMin = m_fRealMin;
 	fRealMax = m_fRealMax;
 }
+
 
 //cv::Mat Matching::AdjustFLUMatchingTheta(cv::Mat matFlu, cv::Mat mat3D, float fScaleX, float fScaleY, float fThetaMax, float fThetaMin, float fThetaStep)
 //{

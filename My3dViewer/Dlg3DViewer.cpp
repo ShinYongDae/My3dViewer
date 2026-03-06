@@ -967,7 +967,9 @@ void CDlg3DViewer::Display3D()
 	SSR3DData* S3DData = Get3DData();
 	cv::Mat matModelIMG = S3DData->m_matDepthMap.clone();
 	cv::Mat dst = m_cMatching.ApplyConvertImageAuto(matModelIMG);
-	m_cMatching.GetRealMinMax(m_fMin, m_fMax);
+	m_cMatching.GetAverage(m_fMin, m_fMax);
+	//m_cMatching.GetMinMax(m_fMin, m_fMax);
+	//m_cMatching.GetRealMinMax(m_fMin, m_fMax);
 	cv::Mat dst2;
 	applyColorMap(dst, dst2, cv::COLORMAP_RAINBOW);
 	if (!dst.empty())
@@ -1005,6 +1007,36 @@ void CDlg3DViewer::Display3D()
 	//strData.Format(_T("%.3f"), m_fMax*1000.0);
 	//SetDlgItemText(IDC_EDIT_MAX, strData);
 
+}
+
+void CDlg3DViewer::Display3D(float fMin, float fMax)
+{
+	SSR3DData* S3DData = Get3DData();
+	cv::Mat matModelIMG = S3DData->m_matDepthMap.clone();
+	cv::Mat dst = m_cMatching.ApplyConvertImage(matModelIMG, fMin, fMax);
+	cv::Mat dst2;
+	applyColorMap(dst, dst2, cv::COLORMAP_RAINBOW);
+	if (!dst.empty())
+	{
+		S3DData->m_bValid = 1;
+		m_DefectColor = dst2;
+
+		S3DData->m_matDepthMapColor = m_DefectColor.clone();
+		S3DData->m_AmpMatrix = S3DData->m_matDepthMap.clone();
+
+		CRect rectResult;
+		CDC* pDCResult;
+		m_Pic.GetWindowRect(rectResult);
+		cv::resize(dst2, m_Image, cv::Size(rectResult.Width(), rectResult.Height()));
+		pDCResult = m_Pic.GetDC();
+		if (!m_Image.empty())
+		{
+			DrawMat(pDCResult->m_hDC, m_Image);
+		}
+		::ReleaseDC(m_hWnd, pDCResult->m_hDC);
+
+		SendMessage(WM_UPDATE_3D_MODEL, 0, 0);
+	}
 }
 
 void CDlg3DViewer::DrawMat(HDC hDC, cv::Mat& img)
@@ -1087,6 +1119,12 @@ void CDlg3DViewer::SetMinMax(float fMin, float fMax)
 {
 	m_fMin = fMin;
 	m_fMax = fMax;
+}
+
+void CDlg3DViewer::AdjustRange(float fMin, float fMax)
+{
+	SetMinMax(fMin, fMax);
+	Display3D(fMin, fMax);
 }
 
 void CDlg3DViewer::Auto3D()
