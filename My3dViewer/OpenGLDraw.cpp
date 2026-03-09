@@ -1543,19 +1543,28 @@ void COpenGLDraw::DrawText(CString strText, GLdouble x, GLdouble y, GLdouble z, 
 //	Also the stroke width can be specified by using the function
 	GLfloat lineWidth;
 	glGetFloatv(GL_LINE_WIDTH,&lineWidth);
-
 	glLineWidth(fLintWidth);
-
 	SetColor(color);
-
-//	glScalef(1.0f*fFontSize, 1.0f*fFontSize, z);
-//	
-//	TCHAR* pText;
-//	pText = strText.GetBuffer(0); // GetBuffer(0): strText가 가지고 있는 문자열의 만큼 가지고 온다
-//
+	glScalef(1.0f*fFontSize, -1.0f*fFontSize, z); // Reverse X-Axis
+	//glScalef(1.0f*fFontSize, 1.0f*fFontSize, z);
+	
+	char* pText = StringToChar(strText);
+	int nSize = strlen(pText);
+	int nChar = 0;
+	for (int i = 0; i < nSize; i++)
+	{
+		nChar = pText[i];
+		if(nChar)
+			glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, nChar);
+	}
+	delete pText;
+	//TCHAR* pText;
+	//pText = strText.GetBuffer(0); // GetBuffer(0): strText가 가지고 있는 문자열의 만큼 가지고 온다
+	//
 //#ifdef _WIN64
-//	while (*pText)
-//		glutStrokeCharacter(GLUT_STROKE_ROMAN, *pText++);
+	//while (*pText)
+	//	glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, *pText++);
+	//	//glutStrokeCharacter(GLUT_STROKE_ROMAN, *pText++);
 //#else
 //	while(*pText)
 //		glutStrokeCharacter(GLUT_STROKE_ROMAN, *pText++);
@@ -2300,14 +2309,14 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 		glVertex3d(Xpitch*j,Ypitch*(YDirnum-1),Orgin.z);
 		glEnd();
 
-		if(j==0 || j== XdirNum-1)
+		if(j==0)// || j== XdirNum-1)
 		{
 				
 			if(Option == G_GRID_TEXT || Option == G_GRID_TEXT+G_GRID_TEXT_INVERT)
 			{
 				_stprintf(text,_T("%3.1f"),Xpitch*j+StartX);
-
-				DrawText(text,Xpitch*j-15,-17,Orgin.z,0.1,1.0,TextColor);
+				DrawText(text, Xpitch*j - 50.0, -35.0, Orgin.z, 0.2, 1.0, TextColor);
+				//DrawText(text,Xpitch*j-15,-17,Orgin.z,0.1,1.0,TextColor);
 			}
 
 			tempcount++;
@@ -2322,8 +2331,8 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 				{
 
 					_stprintf(text,_T("%3.1f"),Xpitch*j+StartX);
-
-					DrawText(text,Xpitch*j-15,-17,Orgin.z,0.1,1.0,TextColor);
+					DrawText(text, Xpitch*j - 50.0, -35.0, Orgin.z, 0.2, 1.0, TextColor);
+					//DrawText(text,Xpitch*j-15,-17,Orgin.z,0.1,1.0,TextColor);
 				}					
 
 			}
@@ -2340,26 +2349,30 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 		glVertex3d(Xpitch*(XdirNum-1),Ypitch*j,Orgin.z);
 		glEnd();	
 		
-		if(j==0 || j== YDirnum-1)
+		if(j==0)// || j== YDirnum-1)
 		{
 
 			if(Option == G_GRID_TEXT)
 			{
 				_stprintf(text,_T("%3.1f"),Ypitch*j+StartY);
 
-				if(j==0)
-				DrawText(text,-50,Ypitch*j+5,Orgin.z,0.1,1.0,TextColor);
+				if (j == 0)
+					DrawText(text, -110.0, Ypitch*j - 10.0, Orgin.z, 0.2, 1.0, TextColor);
+					//DrawText(text,-50,Ypitch*j+5,Orgin.z,0.1,1.0,TextColor);
 				else
-				DrawText(text,-50,Ypitch*j-5,Orgin.z,0.1,1.0,TextColor);
+					DrawText(text, -110.0, Ypitch*j - 10.0, Orgin.z, 0.2, 1.0, TextColor);
+					//DrawText(text,-50,Ypitch*j-5,Orgin.z,0.1,1.0,TextColor);
 			}
 			else if(Option == G_GRID_TEXT+G_GRID_TEXT_INVERT)
 			{
 				_stprintf(text,_T("%3.1f"),(Ypitch*(YDirnum-1)-Ypitch*j)+StartY);
 
 				if(j==0)
-				DrawText(text,-50,Ypitch*j+5,Orgin.z,0.1,1.0,TextColor);
+					DrawText(text, -110.0, Ypitch*j + 5, Orgin.z, 0.2, 1.0, TextColor);
+					//DrawText(text, -50, Ypitch*j + 5, Orgin.z, 0.1, 1.0, TextColor);
 				else
-				DrawText(text,-50,Ypitch*j-5,Orgin.z,0.1,1.0,TextColor);
+					DrawText(text, -110.0, Ypitch*j - 5, Orgin.z, 0.2, 1.0, TextColor);
+					//DrawText(text, -50, Ypitch*j - 5, Orgin.z, 0.1, 1.0, TextColor);
 			}
 
 			tempcount++;
@@ -2373,16 +2386,19 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 				if(Option == G_GRID_TEXT)
 				{
 					_stprintf(text,_T("%3.1f"),Ypitch*j+StartY);
-					DrawText(text,-50,Ypitch*j-5,Orgin.z,0.1,1.0,TextColor);
+					DrawText(text, -110.0, Ypitch*j - 5, Orgin.z, 0.2, 1.0, TextColor);
+					//DrawText(text,-50,Ypitch*j-5,Orgin.z,0.1,1.0,TextColor);
 				}
 				else if(Option == G_GRID_TEXT+G_GRID_TEXT_INVERT)
 				{
 					_stprintf(text,_T("%3.1f"),(Ypitch*(YDirnum-1)-Ypitch*j)+StartY);
-					if(j==0)
-					DrawText(text,-50,Ypitch*j+5,Orgin.z,0.1,1.0,TextColor);
+					if (j == 0)
+						DrawText(text, -110.0, Ypitch*j + 5, Orgin.z, 0.2, 1.0, TextColor);
+					//DrawText(text,-50,Ypitch*j+5,Orgin.z,0.1,1.0,TextColor);
 					else
-					DrawText(text,-50,Ypitch*j-5,Orgin.z,0.1,1.0,TextColor);
-				}
+						DrawText(text, -110.0, Ypitch*j - 5, Orgin.z, 0.2, 1.0, TextColor);
+						//DrawText(text, -50, Ypitch*j - 5, Orgin.z, 0.1, 1.0, TextColor);
+			}
 
 			}
 			tempcount++;
@@ -2419,9 +2435,9 @@ void COpenGLDraw::DrawAxisXYZ(GLfloat Position_X,GLfloat Position_Y,GLfloat Posi
 	
 	
 	
-	DrawText(_T("X+"),Length+10,0,Position_Z,0.1,0.1,RGB(255,0,0));
-	DrawText(_T("Y+"),0,Length+10,Position_Z,0.1,0.1,RGB(0,255,0));
-	DrawText(_T("Z+"),0,0,Length+10+Position_Z,0.1,0.1,RGB(0,0,255));
+	DrawText(_T("X+"),Length+10,0,Position_Z,0.5,0.2,RGB(255,255,0));
+	DrawText(_T("Y+"),0,Length+10,Position_Z,0.5,0.2,RGB(0,255,0));
+	DrawText(_T("Z+"),0,0,Length+10+Position_Z,0.5,0.2,RGB(0,0,255));
 	//DrawText(_T("X+"),Length+1,0,Position_Z,0.1,0.1,RGB(255,0,0));
 	//DrawText(_T("Y+"),0,Length+1,Position_Z,0.1,0.1,RGB(0,255,0));
 	//DrawText(_T("Z+"),0,0,Length+1+Position_Z,0.1,0.1,RGB(0,0,255));

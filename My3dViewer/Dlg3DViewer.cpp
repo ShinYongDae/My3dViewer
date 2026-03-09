@@ -112,6 +112,7 @@ void CDlg3DViewer::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CDlg3DViewer, CDialog)
 	ON_MESSAGE(WM_UPDATE_3D_MODEL, OnUpdate3DModel)
 	ON_MESSAGE(WM_USER_RENDER, OnGLRender)
+	ON_BN_CLICKED(IDC_CHECK_ZOOM, &CDlg3DViewer::OnBnClickedCheckZoom)
 END_MESSAGE_MAP()
 
 
@@ -177,7 +178,7 @@ LRESULT CDlg3DViewer::OnUpdate3DModel(WPARAM wParam, LPARAM lParam)
 			double yScale, xScale;
 			yScale = 1000.0 / (double)S3DData->m_matDepthMap.rows;
 			xScale = 1000.0 / (double)S3DData->m_matDepthMap.cols;
-			m_Model.ApplyScaleAndOffset(0, 0, 0, xScale, yScale, 5000);
+			m_Model.ApplyScaleAndOffset(0.0, 0.0, 0.0, xScale, yScale, 5000.0);
 		}
 	}
 
@@ -799,7 +800,8 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 	m_draw.DrawAxisXYZ(0, 0, 0, 150, 5);
 
 //#if USE_3D_HELICAM
-	m_draw.DrawGrid(10, 10, 100, 100, 0, 0, 5, 5, CdPoint3D(0, 0, 0), G_GRID_TEXT, RGB_RED);
+	m_draw.DrawGrid(10, 10, 100, 100, 0, 0, 5, 5, CdPoint3D(0, 0, 0), G_GRID_TEXT, RGB_YELLOW);
+	//m_draw.DrawGrid(10, 10, 100, 100, 0, 0, 5, 5, CdPoint3D(0, 0, 0), G_GRID_TEXT, RGB_RED);
 //#elif USE_3D_GFV
 //	m_draw.DrawGrid(10, 7, 100, 100, 0, 0, 5, 5, CdPoint3D(0, 0, 0), G_GRID_TEXT, RGB_RED);
 //#endif
@@ -825,25 +827,20 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 
 		}
 
-
 		int x = 0;
 		int y = 0;
 
-
 		if (m_Model.m_bMeshCreated)
 		{
-
 			m_Model.Draw(TEX_LUT);
-
 			//m_draw.DrawAxisXYZ(0, 0, 0, 100, 2);
 		}
-
 
 		if (m_nSelectDrawType == SHAPE::LINE)
 		{
 			double dStartZ, dEndZ;
-			dStartZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
-			dEndZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+			dStartZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000.0;
+			dEndZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000.0;
 			glLineWidth(3);
 			m_draw.SetColor(RGB_WHITE, 0.5);
 			glBegin(GL_LINES); // filled quad
@@ -859,13 +856,12 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 				glVertex3f((m_ptLine[1].x + m_ptPrePoint.x) * xScale, (m_ptLine[1].y + m_ptPrePoint.y) * yScale, dEndZ);
 			}
 
-
 			glEnd();
 		}
 		else if (m_nSelectDrawType == SHAPE::RECTANGLE)
 		{
 			double dDepthZ;
-			dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+			dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000.0;
 			glLineWidth(3);
 			m_draw.SetColor(RGB_WHITE, 0.5);
 			glBegin(GL_LINE_STRIP); // filled quad
@@ -891,7 +887,7 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 		else if (m_nSelectDrawType == SHAPE::POLYGON)
 		{
 			double dDepthZ;
-			dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+			dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000.0;
 			glLineWidth(3);
 			m_draw.SetColor(RGB_WHITE, 0.5);
 			glBegin(GL_LINE_STRIP); // filled quad
@@ -917,7 +913,7 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 		//else if (CGvisAORView::m_pAORMasterView->m_cMatching.m_vecThinningPt.size() > 0)
 		//{
 		//	double dDepthZ;
-		//	dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000;
+		//	dDepthZ = (S3DData->m_dMax - S3DData->m_dMin) * 5000.0;
 		//	glLineWidth(3);
 		//	m_draw.SetColor(RGB_WHITE, 0.5);
 		//	glBegin(GL_LINE_STRIP); // filled quad
@@ -1130,4 +1126,21 @@ void CDlg3DViewer::AdjustRange(float fMin, float fMax)
 void CDlg3DViewer::Auto3D()
 {
 
+}
+
+void CDlg3DViewer::OnBnClickedCheckZoom()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	BOOL bCheck = ((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->GetCheck();
+
+	if (bCheck)
+	{
+		m_pView->SetOpMode(OPEN_GL::RECT_ZOOM);
+		m_bOpMode = 1;
+	}
+	else
+	{
+		m_bOpMode = 0;
+		m_pView->SetOpMode(OPEN_GL::NONE);
+	}
 }

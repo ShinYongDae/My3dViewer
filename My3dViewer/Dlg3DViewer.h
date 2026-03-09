@@ -123,4 +123,5 @@ protected:
 public:
 	virtual BOOL OnInitDialog();
 	CStatic m_Pic;
+	afx_msg void OnBnClickedCheckZoom();
 };

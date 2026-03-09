@@ -201,6 +201,11 @@ int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// RC(rendering context)를 활성화 시켜야 한다.
 	// 만약 실패한다면 에러메세지를 출력하고 프로그램은 종료 그리고 반환값은 False이다.
 	//VERIFY(wglMakeCurrent(m_hDC, m_hRC));
+
+	int argc = 1;
+	char *argv[1] = { (char*)"Something" };
+	glutInit(&argc, argv);
+
 	InitGraphicTool();
 	return 0;
 }
