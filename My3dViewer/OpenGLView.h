@@ -87,6 +87,7 @@ public:
 	HGLRC m_hRC;
 	BOOL m_bDrawFirst;
 	void MakeCurrent();
+	BOOL FindCamPos(GLdouble fAspect, CdRect frtRect, GLfloat fSpace = 0.0f, GLfloat fOffset = 0.001, BOOL bHeight = FALSE);
 
 public:
 	BOOL m_bMessageSendMode;//

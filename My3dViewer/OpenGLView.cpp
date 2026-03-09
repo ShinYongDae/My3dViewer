@@ -801,7 +801,7 @@ CdPoint3D COpenGLView::ScreenToWorld(CPoint point)
 // Fit to full screen,canvas
 BOOL COpenGLView::FitToScreen()
 {
-	if(FitToScreen(m_frtWorld,m_fFitSpace))
+	if(FitToScreen(m_frtWorld, m_fFitSpace))
 	{
 		GLRenderScene(WM_FIT_TO_SCREEN);
 		ClearHistory();
@@ -825,7 +825,7 @@ BOOL COpenGLView::FitToScreen(CdRect rect)
 }
 
 // Fit to user defined rect size
-BOOL COpenGLView::FitToScreen(CdRect rect,GLfloat fSpace)
+BOOL COpenGLView::FitToScreen(CdRect rect, GLfloat fSpace)
 {
 	CdPoint3D fptBeforeCamPos = m_fptCamPos;
  	m_fptCamPos.x=-(rect.right+rect.left)/2;
@@ -849,14 +849,14 @@ BOOL COpenGLView::FitToScreen(CdRect rect,GLfloat fSpace)
 
 	GLfloat fWidth = rect.right-rect.left,fHeight = rect.top-rect.bottom;
 	
-	//if(fWidth/m_sizeWindow.cx < fHeight/m_sizeWindow.cy)
-	//{	 
-	//	FindCamPos(fAspect,rect,(fSpace/100.0)*m_sizeWindow.cy,0.001,TRUE);
-	//}
-	//else
-	//{
-	//	FindCamPos(fAspect,rect,(fSpace/100.0)*m_sizeWindow.cx,0.001,FALSE);
-	//}
+	if(fWidth/m_sizeWindow.cx < fHeight/m_sizeWindow.cy)
+	{	 
+		FindCamPos(fAspect,rect,(fSpace/100.0)*m_sizeWindow.cy,0.001,TRUE);
+	}
+	else
+	{
+		FindCamPos(fAspect,rect,(fSpace/100.0)*m_sizeWindow.cx,0.001,FALSE);
+	}
 	if(m_fptCamPos.z > -5.0 * m_fNear)
 	{
 		m_fptCamPos = fptBeforeCamPos;
@@ -1021,7 +1021,6 @@ void COpenGLView::ZoomIn(double fup)
 
 	GLRenderScene(WM_FIT_TO_SCREEN);
 	AddHistory(OPEN_GL::ZOOMIN);
-	
 }
 
 void COpenGLView::ZoomOut(double fdown)
@@ -3782,7 +3781,172 @@ char* COpenGLView::StringToChar(CString str)
 	nLenth = WideCharToMultiByte(CP_ACP, 0, wszStr, -1, NULL, 0, NULL, NULL); //char* 형에 대한길이를 구함 
 	szStr = new char[nLenth];  //메모리 할당 
 
-							   //3. wchar_t* to char* conversion
+	//3. wchar_t* to char* conversion
 	WideCharToMultiByte(CP_ACP, 0, wszStr, -1, szStr, nLenth, 0, 0);
 	return szStr;
+}
+
+BOOL COpenGLView::FindCamPos(GLdouble fAspect, CdRect frtRect, GLfloat fSpace, GLfloat fOffset, BOOL bHeight)
+{
+	double MousePosL[3];
+	GLdouble model[16];
+	GLdouble proj[16];
+	GLint viewport[4];
+	GLdouble fCamPos = m_fptCamPos.z;
+	GLdouble fStartPos, fEndPos, fBufPos;
+	BOOL bUp, bFirst = TRUE;
+	int nLoopCnt = 0;
+	GLdouble dRightTopX = frtRect.right, dRightTopY = frtRect.top;
+	BOOL bFind = TRUE;
+	while (nLoopCnt < 1000)
+	{
+		nLoopCnt++;
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluPerspective(m_fFOV, fAspect, m_fNear, m_fFar);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glTranslatef(m_fptCamPos.x, m_fptCamPos.y, fCamPos);
+		glGetDoublev(GL_MODELVIEW_MATRIX, model);
+		glGetDoublev(GL_PROJECTION_MATRIX, proj);
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		gluProject(dRightTopX, dRightTopY, 0.0f, model, proj, viewport, &MousePosL[0], &MousePosL[1], &MousePosL[2]);
+
+		if (bHeight)
+		{
+			if (MousePosL[1] + fSpace > viewport[3])
+			{
+				if (!bFirst)
+				{
+					if (bUp)
+					{
+						break;
+					}
+				}
+				bUp = FALSE;
+			}
+			else
+			{
+				if (!bFirst)
+				{
+					if (!bUp)
+					{
+						break;
+					}
+				}
+				bUp = TRUE;
+			}
+		}
+		else
+		{
+			if (MousePosL[0] + fSpace > viewport[2])
+			{
+				if (!bFirst)
+				{
+					if (bUp)
+					{
+						break;
+					}
+				}
+				bUp = FALSE;
+			}
+			else
+			{
+				if (!bFirst)
+				{
+					if (!bUp)
+					{
+						break;
+					}
+				}
+				bUp = TRUE;
+			}
+		}
+		fStartPos = fCamPos;
+		if (bUp)
+		{
+			fCamPos /= 2.0;
+		}
+		else
+		{
+			fCamPos *= 2.0;
+		}
+		fEndPos = fCamPos;
+		bFirst = FALSE;
+	}
+
+	if (fStartPos > fEndPos)
+	{
+		fBufPos = fStartPos;
+		fStartPos = fEndPos;
+		fEndPos = fBufPos;
+	}
+
+	while (nLoopCnt < 1000)
+	{
+		nLoopCnt++;
+		fCamPos = (fStartPos + fEndPos) / 2.0;
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluPerspective(m_fFOV, fAspect, m_fNear, m_fFar);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glTranslatef(m_fptCamPos.x, m_fptCamPos.y, fCamPos);
+		glGetDoublev(GL_MODELVIEW_MATRIX, model);
+		glGetDoublev(GL_PROJECTION_MATRIX, proj);
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		gluProject(dRightTopX, dRightTopY, 0.0, model, proj, viewport, &MousePosL[0], &MousePosL[1], &MousePosL[2]);
+
+
+		if (bHeight)
+		{
+			if (MousePosL[1] + fSpace > viewport[3])
+			{
+				if (MousePosL[1] + fSpace - viewport[3] < fOffset)
+					break;
+				bUp = FALSE;
+			}
+			else
+			{
+				if (viewport[3] - (MousePosL[1] + fSpace) < fOffset)
+					break;
+				bUp = TRUE;
+			}
+		}
+		else
+		{
+			if (MousePosL[0] + fSpace > viewport[2])
+			{
+				if (MousePosL[0] + fSpace + viewport[2] < fOffset)
+					break;
+				bUp = FALSE;
+			}
+			else
+			{
+				if (viewport[2] - (MousePosL[0] + fSpace) < fOffset)
+					break;
+				bUp = TRUE;
+			}
+		}
+		if (bUp)
+		{
+			fStartPos = fCamPos;
+		}
+		else
+		{
+			fEndPos = fCamPos;
+		}
+		if (fEndPos - fStartPos < fOffset)
+		{
+			break;
+		}
+	}
+
+	if (fCamPos > -1.01 * m_fNear)
+	{
+		fCamPos = -1.01 * m_fNear;
+		bFind = FALSE;
+	}
+	m_fptCamPos.z = fCamPos;
+	return bFind;
 }

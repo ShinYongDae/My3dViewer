@@ -65,6 +65,7 @@ class CDlg3DViewer : public CDialog
 	void Prepare3D();
 	void Display3D();
 	void Display3D(float fMin, float fMax);
+	void UpdateModel();
 	void Auto3D();
 
 private:
@@ -124,4 +125,8 @@ public:
 	virtual BOOL OnInitDialog();
 	CStatic m_Pic;
 	afx_msg void OnBnClickedCheckZoom();
+	afx_msg void OnBnClickedCheckZoomin();
+	afx_msg void OnBnClickedCheckZoomout();
+	afx_msg void OnBnClickedCheckFit();
+	afx_msg void OnBnClickedChkOnlyResin();
 };

@@ -113,6 +113,10 @@ BEGIN_MESSAGE_MAP(CDlg3DViewer, CDialog)
 	ON_MESSAGE(WM_UPDATE_3D_MODEL, OnUpdate3DModel)
 	ON_MESSAGE(WM_USER_RENDER, OnGLRender)
 	ON_BN_CLICKED(IDC_CHECK_ZOOM, &CDlg3DViewer::OnBnClickedCheckZoom)
+	ON_BN_CLICKED(IDC_CHECK_ZOOMIN, &CDlg3DViewer::OnBnClickedCheckZoomin)
+	ON_BN_CLICKED(IDC_CHECK_ZOOMOUT, &CDlg3DViewer::OnBnClickedCheckZoomout)
+	ON_BN_CLICKED(IDC_CHECK_FIT, &CDlg3DViewer::OnBnClickedCheckFit)
+	ON_BN_CLICKED(IDC_CHK_ONLY_RESIN, &CDlg3DViewer::OnBnClickedChkOnlyResin)
 END_MESSAGE_MAP()
 
 
@@ -1123,11 +1127,6 @@ void CDlg3DViewer::AdjustRange(float fMin, float fMax)
 	Display3D(fMin, fMax);
 }
 
-void CDlg3DViewer::Auto3D()
-{
-
-}
-
 void CDlg3DViewer::OnBnClickedCheckZoom()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
@@ -1143,4 +1142,173 @@ void CDlg3DViewer::OnBnClickedCheckZoom()
 		m_bOpMode = 0;
 		m_pView->SetOpMode(OPEN_GL::NONE);
 	}
+}
+
+void CDlg3DViewer::OnBnClickedCheckZoomin()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	m_pView->ZoomIn(2);
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOMIN))->SetCheck(0);
+}
+
+
+void CDlg3DViewer::OnBnClickedCheckZoomout()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	m_pView->ZoomOut(2);
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOMOUT))->SetCheck(0);
+}
+
+
+void CDlg3DViewer::OnBnClickedCheckFit()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	m_pView->FitToScreen();
+	((CButton*)GetDlgItem(IDC_CHECK_FIT))->SetCheck(0);
+}
+
+
+void CDlg3DViewer::OnBnClickedChkOnlyResin()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	BOOL bState = ((CButton*)GetDlgItem(IDC_CHK_ONLY_RESIN))->GetCheck();
+	if (bState)
+	{
+		m_bOnlyResin = TRUE;
+
+	}
+	else
+	{
+		m_bOnlyResin = FALSE;
+	}
+	UpdateModel();
+	m_pView->Refresh();
+}
+
+void CDlg3DViewer::UpdateModel()
+{
+	SSR3DData *S3DData = Get3DData();
+	cv::Mat matZMap, matResize;
+	cv::Size szResize;
+	if (S3DData->m_bValid)
+	{
+		m_pView->MakeCurrent();
+		if (m_bOnlyResin)
+		{
+//#if USE_3D_HELICAM == USE
+			m_Model.m_ZMap = S3DData->m_matOnlyResin.clone();
+//#elif USE_3D_GFV == USE
+//			matZMap = S3DData->m_matOnlyResin.clone();
+//			szResize.height = matZMap.rows * m_fResizeScale;
+//			szResize.width = matZMap.cols * m_fResizeScale;
+//			if (szResize.width % 2 == 1)
+//			{
+//				szResize.width++;
+//			}
+//			if (szResize.height % 2 == 1)
+//			{
+//				szResize.height++;
+//			}
+//
+//			cv::resize(matZMap, matResize, szResize);
+//			m_Model.m_ZMap = matResize.clone();
+//#endif
+		}
+		else
+		{
+//#if USE_3D_HELICAM == USE
+			m_Model.m_ZMap = S3DData->m_matDepthMap.clone();
+//#elif USE_3D_GFV == USE
+//			matZMap = S3DData->m_matDepthMap.clone();
+//			szResize.height = matZMap.rows * m_fResizeScale;
+//			szResize.width = matZMap.cols * m_fResizeScale;
+//			if (szResize.width % 2 == 1)
+//			{
+//				szResize.width++;
+//			}
+//			if (szResize.height % 2 == 1)
+//			{
+//				szResize.height++;
+//			}
+//
+//			cv::resize(matZMap, matResize, szResize);
+//			m_Model.m_ZMap = matResize.clone();
+//#endif
+		}
+
+		if (m_Model.m_ZMap.empty())
+			return;
+
+//#if USE_3D_HELICAM == USE
+		m_Model.m_ColorImg = S3DData->m_matDepthMapColor.clone();
+		m_Model.m_GrayImg = S3DData->m_AmpMatrix.clone();
+		m_Model.m_ResinImg = S3DData->m_matOnlyResin.clone();
+//#elif USE_3D_GFV == USE
+//
+//		matZMap = S3DData->m_matDepthMapColor.clone();
+//		szResize.height = matZMap.rows * m_fResizeScale;
+//		szResize.width = matZMap.cols * m_fResizeScale;
+//		if (szResize.width % 2 == 1)
+//		{
+//			szResize.width++;
+//		}
+//		if (szResize.height % 2 == 1)
+//		{
+//			szResize.height++;
+//		}
+//		cv::resize(matZMap, matResize, szResize);
+//		m_Model.m_ColorImg = matResize.clone();
+//
+//		matZMap = S3DData->m_AmpMatrix.clone();
+//		szResize.height = matZMap.rows * m_fResizeScale;
+//		szResize.width = matZMap.cols * m_fResizeScale;
+//		if (szResize.width % 2 == 1)
+//		{
+//			szResize.width++;
+//		}
+//		if (szResize.height % 2 == 1)
+//		{
+//			szResize.height++;
+//		}
+//		cv::resize(matZMap, matResize, szResize);
+//		m_Model.m_GrayImg = matResize.clone();
+//
+//		matZMap = S3DData->m_matOnlyResin.clone();
+//		szResize.height = matZMap.rows * m_fResizeScale;
+//		szResize.width = matZMap.cols * m_fResizeScale;
+//		if (szResize.width % 2 == 1)
+//		{
+//			szResize.width++;
+//		}
+//		if (szResize.height % 2 == 1)
+//		{
+//			szResize.height++;
+//		}
+//		cv::resize(matZMap, matResize, szResize);
+//		m_Model.m_ResinImg = matResize.clone();
+//#endif
+		m_Model.MakeModel();
+
+		if (!S3DData->m_matDepthMap.empty())
+		{
+			double yScale, xScale;
+//#if USE_3D_HELICAM == USE
+			yScale = 1000.0 / m_Model.m_ZMap.rows;
+			xScale = 1000.0 / m_Model.m_ZMap.cols;
+//#elif USE_3D_GFV == USE
+//			yScale = 686 / m_Model.m_ZMap.rows;
+//			xScale = 1000 / m_Model.m_ZMap.cols;
+//#endif
+
+
+			//	m_Model.ApplyScaleAndOffset(0, 0, -S3DData->m_dMin, xScale, yScale, 5000);
+
+			m_Model.ApplyScaleAndOffset(0, 0, 0, xScale, yScale, 5000);
+		}
+	}
+}
+
+void CDlg3DViewer::Auto3D()
+{
+
 }
