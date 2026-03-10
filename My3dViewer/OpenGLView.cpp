@@ -493,7 +493,8 @@ void COpenGLView::GLRenderScene(UINT nAction, int nKey)
 	glPopMatrix();
 	if(m_bDragingRectZoom)  //rect zoom
 	{
-		m_GLDraw.SetColor(RED);
+		m_GLDraw.SetColor(YELLOW);
+		//m_GLDraw.SetColor(RED);
 		m_GLDraw.DrawRect(m_fptRefPos,m_fptCurPos,2,FALSE);
 	}
 	if (m_bDragingPiece)

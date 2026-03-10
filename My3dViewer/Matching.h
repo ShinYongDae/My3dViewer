@@ -16,8 +16,6 @@ private:
 	cv::Point m_ptMatchLoc;
 	double m_dMatchScore;
 
-	
-
 public:
 	//3D Calibration
 	AllArea_3D m_3DAllArea;

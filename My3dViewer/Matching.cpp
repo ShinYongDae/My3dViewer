@@ -1103,17 +1103,17 @@ void Matching::SetMatchPt(cv::Point pt)
 
 //void Matching::CalculCuResin(cv::Mat matDefect)
 //{
-//	SSR3DData* S3DData = CGvisAORDoc::m_pAORMasterDoc->Get3DData();
+//	SSR3DData* S3DData = Get3DData();
 //	cv::Mat matOnlyResin = S3DData->m_matDepthMap.clone();
 //
 //	int nSizeX, nSizeY;
-//#if USE_3D_HELICAM == USE
-//	nSizeX = MAX_3D_WIDTH_SIZE;
-//	nSizeY = MAX_3D_HEIGHT_SIZE;
-//#elif USE_3D_GFV == USE
+////#if USE_3D_HELICAM == USE
+////	nSizeX = MAX_3D_WIDTH_SIZE;
+////	nSizeY = MAX_3D_HEIGHT_SIZE;
+////#elif USE_3D_GFV == USE
 //	nSizeX = S3DData->m_matDepthMap.cols;
 //	nSizeY = S3DData->m_matDepthMap.rows;
-//#endif
+////#endif
 //
 //	m_matLineWidth = cv::Mat(nSizeY, nSizeX, CV_8UC1);
 //	m_matLineWidth.setTo(0);

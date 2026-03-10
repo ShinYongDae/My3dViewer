@@ -46,17 +46,7 @@ CDlg3DViewer::CDlg3DViewer(CWnd* pParent /*=NULL*/)
 	m_fMin = -0.1;
 
 	// for OpenGL Rendering
-	m_bOpMode = 0;
-	_mouseButton = 0;
-	_angleHor = 40;
-	_angleVer = -36;
-	_fovAngle = 45;
-	_eyePos.x = 0;
-	_eyePos.y = -4;
-	_eyePos.z = 0;
-	_centerPos.x = 0;
-	_centerPos.y = 0;
-	_centerPos.z = 0;
+	InitParamRendering();
 }
 
 CDlg3DViewer::~CDlg3DViewer()
@@ -104,7 +94,6 @@ void CDlg3DViewer::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_ZOOMIN, m_ChkZoomIn);
 	DDX_Control(pDX, IDC_CHECK_ZOOMOUT, m_ChkZoomOut);
 	DDX_Control(pDX, IDC_CHECK_FIT, m_ChkFit);
-	DDX_Control(pDX, IDC_CHK_ONLY_RESIN, m_ChkOnlyResin);
 	DDX_Control(pDX, IDC_STATIC_VIEW, m_Pic);
 }
 
@@ -116,7 +105,6 @@ BEGIN_MESSAGE_MAP(CDlg3DViewer, CDialog)
 	ON_BN_CLICKED(IDC_CHECK_ZOOMIN, &CDlg3DViewer::OnBnClickedCheckZoomin)
 	ON_BN_CLICKED(IDC_CHECK_ZOOMOUT, &CDlg3DViewer::OnBnClickedCheckZoomout)
 	ON_BN_CLICKED(IDC_CHECK_FIT, &CDlg3DViewer::OnBnClickedCheckFit)
-	ON_BN_CLICKED(IDC_CHK_ONLY_RESIN, &CDlg3DViewer::OnBnClickedChkOnlyResin)
 END_MESSAGE_MAP()
 
 
@@ -146,6 +134,24 @@ BOOL CDlg3DViewer::OnInitDialog()
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
+}
+
+void CDlg3DViewer::InitParamRendering()
+{
+	m_bOpMode = 0;
+	_mouseButton = 0;
+	_angleHor = 40.0;
+	_angleVer = -36.0;
+	_fovAngle = 45.0;
+	_transX = 0.0;
+	_transY = 0.0;
+	_transZ = 0.0;
+	_eyePos.x = 0.0;
+	_eyePos.y = -4.0;
+	_eyePos.z = 0.0;
+	_centerPos.x = 0.0;
+	_centerPos.y = 0.0;
+	_centerPos.z = 0.0;
 }
 
 void CDlg3DViewer::DispFree()
@@ -738,8 +744,27 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 
 			}
 			else if (_mouseButton == 2) {
-				_centerPos.x -= (m_pView->m_ptCurPos.x - _mouseDownPoint.x) / 100.;
-				_centerPos.z += (m_pView->m_ptCurPos.y - _mouseDownPoint.y) / 100.;
+				double radianX = _angleHor * PI / 180.0; // 도를 라디안으로 변환
+				double radianY = (90.0 - _angleHor) * PI / 180.0; // 도를 라디안으로 변환
+				double dDiffX = (m_pView->m_ptCurPos.x - _mouseDownPoint.x) * cos(radianX); // + (m_pView->m_ptCurPos.y - _mouseDownPoint.y) * sin(radianY);
+				double dDiffY = (m_pView->m_ptCurPos.y - _mouseDownPoint.y) * cos(radianY) - (m_pView->m_ptCurPos.x - _mouseDownPoint.x) * sin(radianX);
+				double dDiffZ = m_pView->m_ptCurPos.y - _mouseDownPoint.y;
+				//if (dDiffX > 5.0 || dDiffX < -5.0)
+				//{
+					_transX += dDiffX;
+				//}
+				//else if (dDiffY > 5.0 || dDiffY < -5.0)
+				//{
+					_transY += dDiffY;
+				//}
+				//else if (dDiffZ > 5.0 || dDiffZ < -5.0)
+				//{
+					_transZ -= dDiffZ;
+				//}
+				//_centerPos.x -= (m_pView->m_ptCurPos.x - _mouseDownPoint.x) / 100.;
+				//_centerPos.z += (m_pView->m_ptCurPos.y - _mouseDownPoint.y) / 100.;
+
+				//_centerPos.y += (m_pView->m_ptCurPos.y - _mouseDownPoint.y) / 100.;
 
 				//double dy = 0.002*(point.x-_mouseDownPoint.x);
 				//double dz = 0.002*(point.y-_mouseDownPoint.y);
@@ -799,7 +824,8 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 	glRotated(_angleVer, 1, 0, 0);
 	glRotated(_angleHor, 0, 0, 1);
 	//glTranslatef(-500, -500, 0);
-	glTranslatef(-600, -200, 100);
+	//glTranslatef(-600, -200, 100);
+	glTranslatef(-600 + _transX, -350 + _transY, 100 + _transZ);
 
 	m_draw.DrawAxisXYZ(0, 0, 0, 150, 5);
 
@@ -1163,149 +1189,11 @@ void CDlg3DViewer::OnBnClickedCheckZoomout()
 void CDlg3DViewer::OnBnClickedCheckFit()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(FALSE);
+	m_pView->SetOpMode(OPEN_GL::NONE);
+	InitParamRendering();
 	m_pView->FitToScreen();
 	((CButton*)GetDlgItem(IDC_CHECK_FIT))->SetCheck(0);
-}
-
-
-void CDlg3DViewer::OnBnClickedChkOnlyResin()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	BOOL bState = ((CButton*)GetDlgItem(IDC_CHK_ONLY_RESIN))->GetCheck();
-	if (bState)
-	{
-		m_bOnlyResin = TRUE;
-
-	}
-	else
-	{
-		m_bOnlyResin = FALSE;
-	}
-	UpdateModel();
-	m_pView->Refresh();
-}
-
-void CDlg3DViewer::UpdateModel()
-{
-	SSR3DData *S3DData = Get3DData();
-	cv::Mat matZMap, matResize;
-	cv::Size szResize;
-	if (S3DData->m_bValid)
-	{
-		m_pView->MakeCurrent();
-		if (m_bOnlyResin)
-		{
-//#if USE_3D_HELICAM == USE
-			m_Model.m_ZMap = S3DData->m_matOnlyResin.clone();
-//#elif USE_3D_GFV == USE
-//			matZMap = S3DData->m_matOnlyResin.clone();
-//			szResize.height = matZMap.rows * m_fResizeScale;
-//			szResize.width = matZMap.cols * m_fResizeScale;
-//			if (szResize.width % 2 == 1)
-//			{
-//				szResize.width++;
-//			}
-//			if (szResize.height % 2 == 1)
-//			{
-//				szResize.height++;
-//			}
-//
-//			cv::resize(matZMap, matResize, szResize);
-//			m_Model.m_ZMap = matResize.clone();
-//#endif
-		}
-		else
-		{
-//#if USE_3D_HELICAM == USE
-			m_Model.m_ZMap = S3DData->m_matDepthMap.clone();
-//#elif USE_3D_GFV == USE
-//			matZMap = S3DData->m_matDepthMap.clone();
-//			szResize.height = matZMap.rows * m_fResizeScale;
-//			szResize.width = matZMap.cols * m_fResizeScale;
-//			if (szResize.width % 2 == 1)
-//			{
-//				szResize.width++;
-//			}
-//			if (szResize.height % 2 == 1)
-//			{
-//				szResize.height++;
-//			}
-//
-//			cv::resize(matZMap, matResize, szResize);
-//			m_Model.m_ZMap = matResize.clone();
-//#endif
-		}
-
-		if (m_Model.m_ZMap.empty())
-			return;
-
-//#if USE_3D_HELICAM == USE
-		m_Model.m_ColorImg = S3DData->m_matDepthMapColor.clone();
-		m_Model.m_GrayImg = S3DData->m_AmpMatrix.clone();
-		m_Model.m_ResinImg = S3DData->m_matOnlyResin.clone();
-//#elif USE_3D_GFV == USE
-//
-//		matZMap = S3DData->m_matDepthMapColor.clone();
-//		szResize.height = matZMap.rows * m_fResizeScale;
-//		szResize.width = matZMap.cols * m_fResizeScale;
-//		if (szResize.width % 2 == 1)
-//		{
-//			szResize.width++;
-//		}
-//		if (szResize.height % 2 == 1)
-//		{
-//			szResize.height++;
-//		}
-//		cv::resize(matZMap, matResize, szResize);
-//		m_Model.m_ColorImg = matResize.clone();
-//
-//		matZMap = S3DData->m_AmpMatrix.clone();
-//		szResize.height = matZMap.rows * m_fResizeScale;
-//		szResize.width = matZMap.cols * m_fResizeScale;
-//		if (szResize.width % 2 == 1)
-//		{
-//			szResize.width++;
-//		}
-//		if (szResize.height % 2 == 1)
-//		{
-//			szResize.height++;
-//		}
-//		cv::resize(matZMap, matResize, szResize);
-//		m_Model.m_GrayImg = matResize.clone();
-//
-//		matZMap = S3DData->m_matOnlyResin.clone();
-//		szResize.height = matZMap.rows * m_fResizeScale;
-//		szResize.width = matZMap.cols * m_fResizeScale;
-//		if (szResize.width % 2 == 1)
-//		{
-//			szResize.width++;
-//		}
-//		if (szResize.height % 2 == 1)
-//		{
-//			szResize.height++;
-//		}
-//		cv::resize(matZMap, matResize, szResize);
-//		m_Model.m_ResinImg = matResize.clone();
-//#endif
-		m_Model.MakeModel();
-
-		if (!S3DData->m_matDepthMap.empty())
-		{
-			double yScale, xScale;
-//#if USE_3D_HELICAM == USE
-			yScale = 1000.0 / m_Model.m_ZMap.rows;
-			xScale = 1000.0 / m_Model.m_ZMap.cols;
-//#elif USE_3D_GFV == USE
-//			yScale = 686 / m_Model.m_ZMap.rows;
-//			xScale = 1000 / m_Model.m_ZMap.cols;
-//#endif
-
-
-			//	m_Model.ApplyScaleAndOffset(0, 0, -S3DData->m_dMin, xScale, yScale, 5000);
-
-			m_Model.ApplyScaleAndOffset(0, 0, 0, xScale, yScale, 5000);
-		}
-	}
 }
 
 void CDlg3DViewer::Auto3D()

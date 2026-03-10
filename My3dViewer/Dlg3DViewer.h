@@ -53,7 +53,6 @@ class CDlg3DViewer : public CDialog
 	CButton m_ChkZoomIn;
 	CButton m_ChkZoomOut;
 	CButton m_ChkFit;
-	CButton m_ChkOnlyResin;
 
 	float GetDepthAvg(cv::Mat &matrixZ);
 	cv::Mat calcGrayHist(const cv::Mat& img);
@@ -65,7 +64,7 @@ class CDlg3DViewer : public CDialog
 	void Prepare3D();
 	void Display3D();
 	void Display3D(float fMin, float fMax);
-	void UpdateModel();
+	void InitParamRendering();
 	void Auto3D();
 
 private:
@@ -78,6 +77,9 @@ private:
 	double _angleHor;
 	double _angleVer;
 	double _fovAngle;
+	double _transX;
+	double _transY;
+	double _transZ;
 
 	void DrawMat(HDC hDC, cv::Mat& img);
 	void DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh);
@@ -128,5 +130,4 @@ public:
 	afx_msg void OnBnClickedCheckZoomin();
 	afx_msg void OnBnClickedCheckZoomout();
 	afx_msg void OnBnClickedCheckFit();
-	afx_msg void OnBnClickedChkOnlyResin();
 };
