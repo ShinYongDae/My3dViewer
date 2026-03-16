@@ -7,6 +7,9 @@
 #include "afxdialogex.h"
 #include "GlobalDefineAOR.h"
 #include "My3dViewerDlg.h"
+#include "H5Cpp.h"
+
+using namespace H5;
 
 // CDlg3DViewer 대화 상자입니다.
 
@@ -201,7 +204,26 @@ SSR3DData* CDlg3DViewer::Get3DData()
 	return &m_st3D;
 }
 
-CString CDlg3DViewer::ExtractInfo(CString sPath)
+char* CDlg3DViewer::StringToChar(CString str)
+{
+	char*		szStr = NULL;
+	wchar_t*	wszStr;
+	int				nLenth;
+
+	USES_CONVERSION;
+	//1. CString to wchar_t* conversion
+	wszStr = T2W(str.GetBuffer(str.GetLength()));
+
+	//2. wchar_t* to char* conversion
+	nLenth = WideCharToMultiByte(CP_ACP, 0, wszStr, -1, NULL, 0, NULL, NULL); //char* 형에 대한길이를 구함 
+	szStr = new char[nLenth];  //메모리 할당 
+
+							   //3. wchar_t* to char* conversion
+	WideCharToMultiByte(CP_ACP, 0, wszStr, -1, szStr, nLenth, 0, 0);
+	return szStr;
+}
+
+CString CDlg3DViewer::ExtractInfoXYZ(CString sPath)
 {
 	CString sLine, sData = _T("");
 	CStdioFile stdfile;	// Text로 파일을 ofen. (Data format : char형)
@@ -270,6 +292,8 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 				_xyz.nRowX = nRowX;
 				_xyz.fZmm = fMicronZ / 1000.0;
 				m_stZygoInfo3D.m_arZygoXYZ.Add(_xyz);
+				m_matrixZ.at<float>(nRowX, nColY) = _xyz.fZmm; //COPY RAW DATA
+
 			}
 			else if (nLine == 8)
 			{
@@ -304,6 +328,8 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 					else if(nCol == 2)
 					{
 						sTotRows.Format(_T("%s"), token);
+						m_matrixZ = cv::Mat((uint)_ttoi(sTotRows), (uint)_ttoi(sTotCols), CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
+						m_matrixA = cv::Mat((uint)_ttoi(sTotRows), (uint)_ttoi(sTotCols), CV_8UC1);
 					}
 					token = _tcstok(NULL, seps);
 				}
@@ -349,24 +375,174 @@ CString CDlg3DViewer::ExtractInfo(CString sPath)
 	m_stZygoInfo3D.nSizeColY = nLinesColY;
 	m_stZygoInfo3D.nSizeRowX = nLinesRowX;
 
-	uint xSize = nLinesColY;
-	uint ySize = nLinesRowX;
-	m_matrixZ = cv::Mat(ySize, xSize, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
-	m_matrixA = cv::Mat(ySize, xSize, CV_8UC1);
+	//uint xSize = nLinesColY;
+	//uint ySize = nLinesRowX;
+	//m_matrixZ = cv::Mat(ySize, xSize, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
+	//m_matrixA = cv::Mat(ySize, xSize, CV_8UC1);
 
 	int nidx = 0;
 	//COPY RAW DATA
-	for (uint i = 0; i < ySize; i++) 
+	//for (uint i = 0; i < ySize; i++) 
+	//{
+	//	for (uint j = 0; j < xSize; j++) 
+	//	{
+	//		stTagZygoXYZ stXYZ = m_stZygoInfo3D.m_arZygoXYZ.GetAt(nidx); // Non scaled data.
+	//		m_matrixZ.at<float>(i, j) = stXYZ.fZmm;
+	//		//m_matrixA.at<float>(i, j) = stXYZ.fZmm;
+	//		nidx++;
+	//	}
+	//}
+
+	return sData;
+}
+
+CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
+{
+	CString sLine, sData = _T("");
+	CStdioFile stdfile;	// Text로 파일을 ofen. (Data format : char형)
+	if (!stdfile.Open(sPath, CFile::modeRead | CFile::shareDenyNone, NULL))
 	{
-		for (uint j = 0; j < xSize; j++) 
-		{
-			stTagZygoXYZ stXYZ = m_stZygoInfo3D.m_arZygoXYZ.GetAt(nidx); // Non scaled data.
-			m_matrixZ.at<float>(i, j) = stXYZ.fZmm;
-			//m_matrixA.at<float>(i, j) = stXYZ.fZmm;
-			nidx++;
-		}
+		AfxMessageBox(_T("Fail to load Info."));
+		return sData;
 	}
 
+	RemoveAllZygoXYZ();
+
+	int nSizeCol = 0, nSizeRow = 0;
+	double  dLastAvg = 0.0;
+
+	char* filepath = StringToChar(sPath);
+	try 
+	{
+		Exception::dontPrint(); // Disable automatic error printing
+		H5File file(filepath, H5F_ACC_RDONLY);
+
+		// Open the "data" group where topography is stored
+		Group dataGroup = file.openGroup("Measurement");
+
+		// Open the dataset containing the spatial data (often "intensity" or "phase")
+		DataSet dataset = dataGroup.openDataSet("Surface");
+
+		// Get dataspace to understand dimensions
+		DataSpace dataspace = dataset.getSpace();
+		hsize_t dims[2];
+		dataspace.getSimpleExtentDims(dims, NULL);
+		//std::cout << "Data Dimensions: " << dims[0] << " x " << dims[1] << std::endl;
+		nSizeCol = dims[1]; nSizeRow = dims[0];
+		m_matrixZ = cv::Mat(nSizeRow, nSizeCol, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
+		m_matrixA = cv::Mat(nSizeRow, nSizeCol, CV_8UC1);
+
+		// 데이터 읽기 (float 배열 등)
+		float* data_out = new float[dims[0] * dims[1]];
+		dataset.read(data_out, PredType::NATIVE_FLOAT);
+
+		//// Allocate memory to read data (assuming float/double)
+		//std::vector<float> data(dims[0] * dims[1]);
+		//// Read data
+		//dataset.read(data.data(), PredType::NATIVE_FLOAT);
+
+		for (int nRow = 0; nRow < dims[0]; nRow++)
+		{
+			for (int nCol = 0; nCol < dims[1]; nCol++)
+			{
+				stTagZygoXYZ _xyz;
+				_xyz.nColY = nCol;
+				_xyz.nRowX = nRow;
+				double dZ = (float)data_out[nRow * dims[1] + nCol] / (float)1000000.0;
+				if (dZ > 1000000000.0)
+				{
+					if (!nRow)
+					{
+						if (!nCol)
+							dZ = 0.0;
+						else
+							dZ = m_matrixZ.at<float>(nRow * dims[1] + (nCol - 1));
+					}
+					else
+					{
+						if (!nCol)
+							dZ = m_matrixZ.at<float>((nRow - 1) * dims[1] + nCol);
+						else
+							dZ = m_matrixZ.at<float>(nRow * dims[1] + (nCol - 1));
+					}
+					if (dZ > 1000000000.0)
+						int nStop = 1;
+				}
+				//_xyz.fZmm = (float)((float)data_out[nRow * dims[1] + nCol] / (float)1000000.0);
+				_xyz.fZmm = dZ;
+				m_stZygoInfo3D.m_arZygoXYZ.Add(_xyz);
+				m_matrixZ.at<float>(nRow, nCol) = (float)_xyz.fZmm; //COPY RAW DATA
+				//if (dLastAvg > 1114.0)
+				//	int nStop = 1;
+				dLastAvg += _xyz.fZmm;
+			}
+		}
+		dLastAvg /= (double)(dims[0] * dims[1]);
+		// Data is now in 'data' vector - process as needed
+		//std::cout << "Successfully read data." << std::endl;
+
+		//delete [] data_out;
+		dataset.close();
+		dataGroup.close();
+		file.close();
+	}
+	catch (FileIException &error)
+	{
+		error.printErrorStack();
+	}
+	catch (DataSetIException &error)
+	{
+		error.printErrorStack();
+	}
+
+	delete filepath;
+
+	//if (!nEdLinePhaseData)
+	//	nEdLinePhaseData = nLine - 1;
+	//int nTotLinesPhaseData = nEdLinePhaseData - nStLinePhaseData + 1;
+	//nLinesRowX = nTotLinesPhaseData / nLinesColY;
+
+	//int nPos, nExp;
+	//double dNum;
+	//CString sNum, sExp;
+	//TCHAR tszNum[MAX_PATH], tszExp[MAX_PATH];
+
+	//nPos = sResH.Find('e', 0);
+	//sNum = sResH.Left(nPos);
+	//sExp = sResH.Right(sResH.GetLength() - (nPos + 1));
+	//StringToTCHAR(sNum, tszNum);
+	//StringToTCHAR(sExp, tszExp);
+	//m_stZygoInfo3D.dResHmm = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0;
+
+	//nPos = sResV.Find('e', 0);
+	//sNum = sResV.Left(nPos);
+	//sExp = sResV.Right(sResV.GetLength() - (nPos + 1));
+	//StringToTCHAR(sNum, tszNum);
+	//StringToTCHAR(sExp, tszExp);
+	//m_stZygoInfo3D.dResVmm = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0;
+
+	m_stZygoInfo3D.nTotalPhaseData = m_stZygoInfo3D.m_arZygoXYZ.GetCount();
+	m_stZygoInfo3D.nSizeColY = nSizeCol;
+	m_stZygoInfo3D.nSizeRowX = nSizeRow;
+
+	//uint xSize = nSizeCol;
+	//uint ySize = nSizeRow;
+	//m_matrixZ = cv::Mat(ySize, xSize, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
+	//m_matrixA = cv::Mat(ySize, xSize, CV_8UC1);
+
+	int nidx = 0;
+	//COPY RAW DATA
+	//for (uint i = 0; i < ySize; i++)
+	//{
+	//	for (uint j = 0; j < xSize; j++)
+	//	{
+	//		stTagZygoXYZ stXYZ = m_stZygoInfo3D.m_arZygoXYZ.GetAt(nidx); // Non scaled data.
+	//		m_matrixZ.at<float>(i, j) = stXYZ.fZmm;
+	//		//m_matrixA.at<float>(i, j) = stXYZ.fZmm;
+	//		nidx++;
+	//	}
+	//}
+	sData.Format(_T("%f"), dLastAvg);
 	return sData;
 }
 
@@ -379,15 +555,76 @@ void CDlg3DViewer::RemoveAllZygoXYZ()
 	}
 }
 
+BOOL CDlg3DViewer::IsFileDatx(CString sPath)
+{
+	int nPos, nLine = 0;
+	CString sFileName, sFile, sType, sTemp;
+
+	CFileFind cFile;
+	BOOL bExist = cFile.FindFile(sPath);
+	if (!bExist) return FALSE; // 파일이 존재하지 않음.
+
+	nPos = sPath.ReverseFind('.');
+	if (nPos > 0)
+	{
+		sFileName = sPath.Left(nPos);
+		sTemp = sPath.Right(sPath.GetLength() - nPos - 1);
+		sType = sTemp.MakeLower();
+		if (sType == _T("datx"))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOL CDlg3DViewer::IsFileXYZ(CString sPath)
+{
+	int nPos, nLine = 0;
+	CString sFileName, sType, sTemp;
+
+	CFileFind cFile;
+	BOOL bExist = cFile.FindFile(sPath);
+	if (!bExist) return FALSE; // 파일이 존재하지 않음.
+
+	// 파일명을 얻음.
+	nPos = sPath.ReverseFind('.');
+	if (nPos > 0)
+	{
+		sFileName = sPath.Left(nPos);
+		sTemp = sPath.Right(sPath.GetLength() - nPos - 1);
+		sType = sTemp.MakeLower();
+		if (sType == _T("xyz"))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
 void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 {
 	m_bFitSuccess = FALSE;
-	CString sData = ExtractInfo(sPath);
 
+	CString sData = _T("");
 	cv::Scalar scalarAvg;
-	scalarAvg = cv::mean(m_matrixZ); // memory leak
-	double  dLastAvg = scalarAvg[0];
-	//double  dLastAvg = 1.0;
+	double  dLastAvg = 0.0;
+
+	if (IsFileDatx(sPath))
+	{
+		sData = ExtractInfoDatx(sPath);
+		dLastAvg = _tstof(sData);
+	}
+	else if (IsFileXYZ(sPath))
+	{
+		sData = ExtractInfoXYZ(sPath);
+		scalarAvg = cv::mean(m_matrixZ); // memory leak
+		dLastAvg = scalarAvg[0];
+	}
+	else
+	{
+		AfxMessageBox(_T("Doesn't supported file!!!"));
+		return;
+	}
+
 
 	double dLastMax = -9999999;
 	double dLastMin = 9999999;

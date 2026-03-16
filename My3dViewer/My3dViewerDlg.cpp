@@ -224,7 +224,9 @@ BOOL CMy3dViewerDlg::FileBrowse(CString& sPath)
 	int nAoiMachineNum = 0;
 
 	// File Open Filter 
-	static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.xyz)|*.xyz|All Files (*.*)|*.*||");
+	//static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.datx)|*.datx|All Files (*.*)|*.*||");
+	//static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.xyz)|*.xyz|All Files (*.*)|*.*||");
+	static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.datx)|*.datx|3D Files (*.xyz)|*.xyz|All Files (*.*)|*.*||");
 
 	// CFileDialog 
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, NULL);
@@ -232,7 +234,7 @@ BOOL CMy3dViewerDlg::FileBrowse(CString& sPath)
 	// Win2k Style FileDialog Box
 	dlg.m_ofn.lStructSize = sizeof(OPENFILENAME) + 12; // +12를 Win2k Style로 다이얼로그 박스가 Open됨.
 
-													   // Open Directory
+	// Open Directory
 	TCHAR strPrevDir[MAX_PATH];
 	DWORD dwLength = GetCurrentDirectory(MAX_PATH, strPrevDir);
 	strWorkDir = strPrevDir;

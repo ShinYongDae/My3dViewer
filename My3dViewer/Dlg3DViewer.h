@@ -56,10 +56,14 @@ class CDlg3DViewer : public CDialog
 
 	float GetDepthAvg(cv::Mat &matrixZ);
 	cv::Mat calcGrayHist(const cv::Mat& img);
-	CString ExtractInfo(CString sPath);
+	CString ExtractInfoDatx(CString sPath);
+	CString ExtractInfoXYZ(CString sPath);
 	TCHAR* StringToTCHAR(CString str);
 	void StringToTCHAR(CString str, TCHAR* tszStr);
 	void RemoveAllZygoXYZ();
+	char* StringToChar(CString str);
+	BOOL IsFileDatx(CString sPath);
+	BOOL IsFileXYZ(CString sPath);
 
 	void Prepare3D();
 	void Display3D();
