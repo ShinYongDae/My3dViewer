@@ -17,7 +17,7 @@ typedef CArray<stTagZygoXYZ, stTagZygoXYZ> CArZygoXYZ;
 
 struct stTagZygoInfo3D
 {
-	double dResHmm, dResVmm;
+	double dWaveLength, dResolution;
 	int nTotalPhaseData, nSizeColY, nSizeRowX;
 	CArZygoXYZ m_arZygoXYZ;
 };

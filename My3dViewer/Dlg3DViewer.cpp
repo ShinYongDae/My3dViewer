@@ -362,14 +362,14 @@ CString CDlg3DViewer::ExtractInfoXYZ(CString sPath)
 	sExp = sResH.Right(sResH.GetLength() - (nPos+1));
 	StringToTCHAR(sNum, tszNum);
 	StringToTCHAR(sExp, tszExp);
-	m_stZygoInfo3D.dResHmm = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0;
+	m_stZygoInfo3D.dWaveLength = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0; // [mm]
 
 	nPos = sResV.Find('e', 0);
 	sNum = sResV.Left(nPos);
 	sExp = sResV.Right(sResV.GetLength() - (nPos + 1));
 	StringToTCHAR(sNum, tszNum);
 	StringToTCHAR(sExp, tszExp);
-	m_stZygoInfo3D.dResVmm = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0;
+	m_stZygoInfo3D.dResolution = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0; // [mm]
 
 	m_stZygoInfo3D.nTotalPhaseData = m_stZygoInfo3D.m_arZygoXYZ.GetCount();
 	m_stZygoInfo3D.nSizeColY = nLinesColY;
@@ -441,6 +441,46 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		//// Read data
 		//dataset.read(data.data(), PredType::NATIVE_FLOAT);
 
+		Group attributeGroup = dataGroup.openGroup("Attributes");
+
+		H5::Attribute attr;
+		std::string attrName;
+
+		attrName = "Data Context.Data Attributes.attr.wavelength_in";
+		if (attributeGroup.attrExists(attrName)) 
+		{
+			attr = attributeGroup.openAttribute(attrName);
+
+			// Assuming the attribute is a double
+			double wavelength_in;
+			attr.read(PredType::NATIVE_DOUBLE, &wavelength_in);
+			//std::cout << "Wavelength: " << wavelength_in << " Meters" << std::endl;
+			m_stZygoInfo3D.dWaveLength = wavelength_in * 1000.0; // [mm]
+		}
+		else 
+		{
+			AfxMessageBox(_T("Attribute : Data Context.Data Attributes.attr.wavelength_in not found."));
+			//std::cout << "Attribute " << attrName << " not found." << std::endl;
+		}
+
+		attrName = "Data Context.Data Attributes.attr.lateral_res";
+		if (attributeGroup.attrExists(attrName)) 
+		{
+			attr = attributeGroup.openAttribute(attrName);
+
+			// Assuming the attribute is a double
+			double lateralResolution;
+			attr.read(PredType::NATIVE_DOUBLE, &lateralResolution);
+			//std::cout << "Lateral Resolution : " << lateralResolution << " Meters" << std::endl;
+			m_stZygoInfo3D.dResolution = lateralResolution * 1000.0; // [mm]
+		}
+		else 
+		{
+			AfxMessageBox(_T("Attribute : Data Context.Data Attributes.attr.lateral_res not found."));
+			//std::cout << "Attribute " << attrName << " not found." << std::endl;
+		}
+
+
 		for (int nRow = 0; nRow < dims[0]; nRow++)
 		{
 			for (int nCol = 0; nCol < dims[1]; nCol++)
@@ -449,7 +489,7 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 				_xyz.nColY = nCol;
 				_xyz.nRowX = nRow;
 				double dZ = (float)data_out[nRow * dims[1] + nCol] / (float)1000000.0;
-				if (dZ > 1000000000.0)
+				if (dZ > 1000000000.0 || dZ < -1000000000.0)
 				{
 					if (!nRow)
 					{
@@ -465,7 +505,7 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 						else
 							dZ = m_matrixZ.at<float>(nRow * dims[1] + (nCol - 1));
 					}
-					if (dZ > 1000000000.0)
+					if (dZ > 1000000000.0 || dZ < -1000000000.0)
 						int nStop = 1;
 				}
 				//_xyz.fZmm = (float)((float)data_out[nRow * dims[1] + nCol] / (float)1000000.0);
@@ -481,7 +521,7 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		// Data is now in 'data' vector - process as needed
 		//std::cout << "Successfully read data." << std::endl;
 
-		//delete [] data_out;
+		delete [] data_out;
 		dataset.close();
 		dataGroup.close();
 		file.close();
@@ -497,51 +537,11 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 
 	delete filepath;
 
-	//if (!nEdLinePhaseData)
-	//	nEdLinePhaseData = nLine - 1;
-	//int nTotLinesPhaseData = nEdLinePhaseData - nStLinePhaseData + 1;
-	//nLinesRowX = nTotLinesPhaseData / nLinesColY;
-
-	//int nPos, nExp;
-	//double dNum;
-	//CString sNum, sExp;
-	//TCHAR tszNum[MAX_PATH], tszExp[MAX_PATH];
-
-	//nPos = sResH.Find('e', 0);
-	//sNum = sResH.Left(nPos);
-	//sExp = sResH.Right(sResH.GetLength() - (nPos + 1));
-	//StringToTCHAR(sNum, tszNum);
-	//StringToTCHAR(sExp, tszExp);
-	//m_stZygoInfo3D.dResHmm = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0;
-
-	//nPos = sResV.Find('e', 0);
-	//sNum = sResV.Left(nPos);
-	//sExp = sResV.Right(sResV.GetLength() - (nPos + 1));
-	//StringToTCHAR(sNum, tszNum);
-	//StringToTCHAR(sExp, tszExp);
-	//m_stZygoInfo3D.dResVmm = _tstof(tszNum) * pow(10, _ttoi(tszExp)) * 1000.0;
 
 	m_stZygoInfo3D.nTotalPhaseData = m_stZygoInfo3D.m_arZygoXYZ.GetCount();
 	m_stZygoInfo3D.nSizeColY = nSizeCol;
 	m_stZygoInfo3D.nSizeRowX = nSizeRow;
 
-	//uint xSize = nSizeCol;
-	//uint ySize = nSizeRow;
-	//m_matrixZ = cv::Mat(ySize, xSize, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
-	//m_matrixA = cv::Mat(ySize, xSize, CV_8UC1);
-
-	int nidx = 0;
-	//COPY RAW DATA
-	//for (uint i = 0; i < ySize; i++)
-	//{
-	//	for (uint j = 0; j < xSize; j++)
-	//	{
-	//		stTagZygoXYZ stXYZ = m_stZygoInfo3D.m_arZygoXYZ.GetAt(nidx); // Non scaled data.
-	//		m_matrixZ.at<float>(i, j) = stXYZ.fZmm;
-	//		//m_matrixA.at<float>(i, j) = stXYZ.fZmm;
-	//		nidx++;
-	//	}
-	//}
 	sData.Format(_T("%f"), dLastAvg);
 	return sData;
 }
