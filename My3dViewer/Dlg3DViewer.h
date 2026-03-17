@@ -65,7 +65,7 @@ class CDlg3DViewer : public CDialog
 	BOOL IsFileDatx(CString sPath);
 	BOOL IsFileXYZ(CString sPath);
 
-	void Prepare3D();
+	void Prepare3D(CString sPath);
 	void Display3D();
 	void Display3D(float fMin, float fMax);
 	void InitParamRendering();

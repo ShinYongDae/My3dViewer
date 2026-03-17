@@ -23,12 +23,21 @@ COpenGLDraw::COpenGLDraw()
 	m_fDrawResolution = 0.001;
 	m_nDrawMinArcVertex = 2;
 
+	m_dXResolution = 1.0; 
+	m_dYResolution = 1.0;
+
 	m_vecVertices.reserve(100000);
 }
 
 COpenGLDraw::~COpenGLDraw()
 {
 	m_vecVertices.clear();
+}
+
+void COpenGLDraw::SetResolution(double dX, double dY)
+{
+	m_dXResolution = dX;
+	m_dYResolution = dY;
 }
 
 // draw resolution for arc
@@ -2314,7 +2323,8 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 				
 			if(Option == G_GRID_TEXT || Option == G_GRID_TEXT+G_GRID_TEXT_INVERT)
 			{
-				_stprintf(text,_T("%3.1f"),Xpitch*j+StartX);
+				_stprintf(text,_T("%3.1f"),(Xpitch*j+StartX) * m_dXResolution);
+				//_stprintf(text,_T("%3.1f"),Xpitch*j+StartX);
 				DrawText(text, Xpitch*j - 50.0, -35.0, Orgin.z, 0.2, 1.0, TextColor);
 				//DrawText(text,Xpitch*j-15,-17,Orgin.z,0.1,1.0,TextColor);
 			}
@@ -2330,7 +2340,8 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 				if(Option == G_GRID_TEXT || Option == G_GRID_TEXT+G_GRID_TEXT_INVERT)
 				{
 
-					_stprintf(text,_T("%3.1f"),Xpitch*j+StartX);
+					_stprintf(text,_T("%3.1f"),(Xpitch*j+StartX) * m_dXResolution);
+					//_stprintf(text,_T("%3.1f"),Xpitch*j+StartX);
 					DrawText(text, Xpitch*j - 50.0, -35.0, Orgin.z, 0.2, 1.0, TextColor);
 					//DrawText(text,Xpitch*j-15,-17,Orgin.z,0.1,1.0,TextColor);
 				}					
@@ -2354,7 +2365,8 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 
 			if(Option == G_GRID_TEXT)
 			{
-				_stprintf(text,_T("%3.1f"),Ypitch*j+StartY);
+				_stprintf(text,_T("%3.1f"),(Ypitch*j+StartY) * m_dYResolution);
+				//_stprintf(text,_T("%3.1f"),Ypitch*j+StartY);
 
 				if (j == 0)
 					DrawText(text, -110.0, Ypitch*j - 10.0, Orgin.z, 0.2, 1.0, TextColor);
@@ -2365,7 +2377,8 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 			}
 			else if(Option == G_GRID_TEXT+G_GRID_TEXT_INVERT)
 			{
-				_stprintf(text,_T("%3.1f"),(Ypitch*(YDirnum-1)-Ypitch*j)+StartY);
+				_stprintf(text,_T("%3.1f"),((Ypitch*(YDirnum-1)-Ypitch*j)+StartY) * m_dYResolution);
+				//_stprintf(text,_T("%3.1f"),(Ypitch*(YDirnum-1)-Ypitch*j)+StartY);
 
 				if(j==0)
 					DrawText(text, -110.0, Ypitch*j + 5, Orgin.z, 0.2, 1.0, TextColor);
@@ -2385,13 +2398,15 @@ void COpenGLDraw::DrawGrid(int XdirNum,int YDirnum,double Xpitch,double Ypitch,d
 
 				if(Option == G_GRID_TEXT)
 				{
-					_stprintf(text,_T("%3.1f"),Ypitch*j+StartY);
+					_stprintf(text,_T("%3.1f"),(Ypitch*j+StartY) * m_dYResolution);
+					//_stprintf(text,_T("%3.1f"),Ypitch*j+StartY);
 					DrawText(text, -110.0, Ypitch*j - 5, Orgin.z, 0.2, 1.0, TextColor);
 					//DrawText(text,-50,Ypitch*j-5,Orgin.z,0.1,1.0,TextColor);
 				}
 				else if(Option == G_GRID_TEXT+G_GRID_TEXT_INVERT)
 				{
-					_stprintf(text,_T("%3.1f"),(Ypitch*(YDirnum-1)-Ypitch*j)+StartY);
+					_stprintf(text,_T("%3.1f"),((Ypitch*(YDirnum-1)-Ypitch*j)+StartY) * m_dYResolution);
+					//_stprintf(text,_T("%3.1f"),(Ypitch*(YDirnum-1)-Ypitch*j)+StartY);
 					if (j == 0)
 						DrawText(text, -110.0, Ypitch*j + 5, Orgin.z, 0.2, 1.0, TextColor);
 					//DrawText(text,-50,Ypitch*j+5,Orgin.z,0.1,1.0,TextColor);

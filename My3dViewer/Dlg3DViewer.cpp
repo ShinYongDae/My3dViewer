@@ -248,6 +248,9 @@ CString CDlg3DViewer::ExtractInfoXYZ(CString sPath)
 	int nStLinePhaseData = 0, nEdLinePhaseData = 0;
 	int nPrevLineColY0 = 0, nLinesColY = 0, nLinesRowX = 0;
 
+	int nSizeCol = 0, nSizeRow = 0;
+	int nPixels = 0;
+
 	while (bExist)
 	{
 		bExist = stdfile.ReadString(str);
@@ -328,8 +331,11 @@ CString CDlg3DViewer::ExtractInfoXYZ(CString sPath)
 					else if(nCol == 2)
 					{
 						sTotRows.Format(_T("%s"), token);
-						m_matrixZ = cv::Mat((uint)_ttoi(sTotRows), (uint)_ttoi(sTotCols), CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
-						m_matrixA = cv::Mat((uint)_ttoi(sTotRows), (uint)_ttoi(sTotCols), CV_8UC1);
+
+						nSizeRow = _ttoi(sTotRows); nSizeCol = _ttoi(sTotCols);
+						m_matrixZ = cv::Mat((uint)nSizeRow, (uint)nSizeCol, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
+						m_matrixA = cv::Mat((uint)nSizeRow, (uint)nSizeCol, CV_8UC1);
+						nPixels = nSizeRow * nSizeCol;
 					}
 					token = _tcstok(NULL, seps);
 				}
@@ -380,7 +386,7 @@ CString CDlg3DViewer::ExtractInfoXYZ(CString sPath)
 	//m_matrixZ = cv::Mat(ySize, xSize, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
 	//m_matrixA = cv::Mat(ySize, xSize, CV_8UC1);
 
-	int nidx = 0;
+	//int nidx = 0;
 	//COPY RAW DATA
 	//for (uint i = 0; i < ySize; i++) 
 	//{
@@ -411,6 +417,10 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 	int nSizeCol = 0, nSizeRow = 0;
 	double  dLastAvg = 0.0;
 
+	int nPixels = 0;
+	double dStdev = 0;
+	double dVar = 0;
+
 	char* filepath = StringToChar(sPath);
 	try 
 	{
@@ -431,6 +441,7 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		nSizeCol = dims[1]; nSizeRow = dims[0];
 		m_matrixZ = cv::Mat(nSizeRow, nSizeCol, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
 		m_matrixA = cv::Mat(nSizeRow, nSizeCol, CV_8UC1);
+		nPixels = nSizeRow * nSizeCol;
 
 		// 데이터 읽기 (float 배열 등)
 		float* data_out = new float[dims[0] * dims[1]];
@@ -441,11 +452,30 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		//// Read data
 		//dataset.read(data.data(), PredType::NATIVE_FLOAT);
 
-		Group attributeGroup = dataGroup.openGroup("Attributes");
+		// 외부 데이터를 cv::Mat으로 감싸기 (복사 없음)
+		cv::Mat mat(dims[0], dims[1], CV_32FC1, data_out);
 
+		// NaN 및 Inf 필터링 방법 1: cv::patchNaNs (NaN만 해결)
+		cv::Mat mask;
+		// 절대값이 너무 큰 값(무한대)을 마스킹
+		cv::absdiff(mat, cv::Scalar(0), mask);
+		cv::compare(mask, 1e10, mask, cv::CMP_GT); // 10^10 보다 크면 무한대로 간주
+		// 3. 필터링된 위치에 특정값(예: 0) 대입
+		mat.setTo(0, mask);
+
+
+		// cv::mean() 함수를 사용하여 평균 계산
+		// cv::mean은 cv::Scalar(4개 채널까지)를 반환합니다.
+		cv::Scalar meanScalar = cv::mean(mat);
+
+		// 결과 출력 (채널이 1개이므로 meanScalar[0]에 평균값이 저장됨)
+		double average = meanScalar[0] / (float)1000000.0; // [mm]
+
+
+		// 속성에서 파장과 해상도를 읽어옴.
+		Group attributeGroup = dataGroup.openGroup("Attributes");
 		H5::Attribute attr;
 		std::string attrName;
-
 		attrName = "Data Context.Data Attributes.attr.wavelength_in";
 		if (attributeGroup.attrExists(attrName)) 
 		{
@@ -508,7 +538,8 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 					if (dZ > 1000000000.0 || dZ < -1000000000.0)
 						int nStop = 1;
 				}
-				//_xyz.fZmm = (float)((float)data_out[nRow * dims[1] + nCol] / (float)1000000.0);
+				dVar += (average - dZ)*(average - dZ);
+
 				_xyz.fZmm = dZ;
 				m_stZygoInfo3D.m_arZygoXYZ.Add(_xyz);
 				m_matrixZ.at<float>(nRow, nCol) = (float)_xyz.fZmm; //COPY RAW DATA
@@ -518,6 +549,7 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 			}
 		}
 		dLastAvg /= (double)(dims[0] * dims[1]);
+		dStdev = sqrt(dVar / nPixels);
 		// Data is now in 'data' vector - process as needed
 		//std::cout << "Successfully read data." << std::endl;
 
@@ -537,10 +569,34 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 
 	delete filepath;
 
+	//for (int j = 0; j < m_matrixZ.rows; j++)
+	//{
+	//	for (int i = 0; i < m_matrixZ.cols; i++)
+	//	{
+	//		float fColor = m_matrixZ.at<float>(j, i);// 한 픽셀식 검사
+	//
+	//		if (fabs(fColor - dLastAvg) > dStdev * 3)
+	//		{
+	//			fColor = dLastAvg;
+	//		}
+	//		m_matrixZ.at<float>(j, i) = fColor;
+	//	}
+	//}
+
 
 	m_stZygoInfo3D.nTotalPhaseData = m_stZygoInfo3D.m_arZygoXYZ.GetCount();
 	m_stZygoInfo3D.nSizeColY = nSizeCol;
 	m_stZygoInfo3D.nSizeRowX = nSizeRow;
+
+	double dLastMax = -9999999;
+	double dLastMin = 9999999;
+	minMaxLoc(m_matrixZ, &dLastMin, &dLastMax); // memory leak
+
+	SSR3DData *S3DData = Get3DData();
+	S3DData->m_dAvg = dLastAvg;
+	S3DData->m_dMax = dLastMax;
+	S3DData->m_dMin = dLastMin;
+	S3DData->m_dStdev = dStdev;
 
 	sData.Format(_T("%f"), dLastAvg);
 	return sData;
@@ -602,90 +658,20 @@ BOOL CDlg3DViewer::IsFileXYZ(CString sPath)
 
 void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 {
+	DWORD dwStartTick = GetTickCount();
 	m_bFitSuccess = FALSE;
-
-	CString sData = _T("");
-	cv::Scalar scalarAvg;
-	double  dLastAvg = 0.0;
-
-	if (IsFileDatx(sPath))
-	{
-		sData = ExtractInfoDatx(sPath);
-		dLastAvg = _tstof(sData);
-	}
-	else if (IsFileXYZ(sPath))
-	{
-		sData = ExtractInfoXYZ(sPath);
-		scalarAvg = cv::mean(m_matrixZ); // memory leak
-		dLastAvg = scalarAvg[0];
-	}
-	else
-	{
-		AfxMessageBox(_T("Doesn't supported file!!!"));
-		return;
-	}
-
-
-	double dLastMax = -9999999;
-	double dLastMin = 9999999;
-	minMaxLoc(m_matrixZ, &dLastMin, &dLastMax); // memory leak
-
-	double dAvg = GetDepthAvg(m_matrixZ); // memory leak
-	//double dAvg = 1.0;
-
-	int nPixels = m_matrixZ.rows * m_matrixZ.cols;
-	double dStdev = 0;
-	double dVar = 0;
-
-	for (int j = 0; j < m_matrixZ.rows; j++)
-	{
-		for (int i = 0; i < m_matrixZ.cols; i++)
-		{
-			float fColor = m_matrixZ.at<float>(j, i);// 한 픽셀식 검사 
-
-			dVar += (dAvg - fColor)*(dAvg - fColor);
-		}
-	}
-	dStdev = sqrt(dVar / nPixels);
-
-	for (int j = 0; j < m_matrixZ.rows; j++)
-	{
-		for (int i = 0; i < m_matrixZ.cols; i++)
-		{
-			float fColor = m_matrixZ.at<float>(j, i);// 한 픽셀식 검사 
-
-			if (fabs(fColor - dAvg) > dStdev * 3)
-			{
-				fColor = dAvg;
-			}
-			m_matrixZ.at<float>(j, i) = fColor;
-		}
-	}
-
-	SSR3DData *S3DData = Get3DData();
-	S3DData->m_nSizeX = m_matrixZ.cols;
-	S3DData->m_nSizeY = m_matrixZ.rows;
-	S3DData->m_matDepthMap = m_matrixZ.clone();
-	S3DData->m_dAvg = dLastAvg;
-	S3DData->m_dMax = dLastMax;
-	S3DData->m_dMin = dLastMin;
-	S3DData->m_dStdev = dStdev;
-	S3DData->m_dScanStart = m_fpos_start;
-	S3DData->m_dScanEnd = m_fpos_end;
-	S3DData->m_dTgu = m_fpos_tgu;
-	S3DData->m_dTgd = m_fpos_tgd;
-	S3DData->m_dRamp = m_fScan_Ramp;
-	S3DData->m_dRange = m_fScan_Range;
-	S3DData->m_dXResolution = _3D_RESOLUTION;
-	S3DData->m_dYResolution = _3D_RESOLUTION;
-	S3DData->m_bValid = 1;
 
 	//cv::setNumThreads(0);
 	//vec.clear(); // 더 이상 필요 없으면,
-	Prepare3D();
+	Prepare3D(sPath);
 	Display3D();
 	((CMy3dViewerDlg*)m_pParentWnd)->SetMinMax(m_fMin, m_fMax);
 	Auto3D();
+
+	CString str;
+	DWORD nElapsed = GetTickCount() - dwStartTick;
+	str.Format(_T("%d"), nElapsed);
+	GetDlgItem(IDC_EDIT_LOADING_TIME)->SetWindowText(str);
 }
 
 float CDlg3DViewer::GetDepthAvg(cv::Mat &matrixZ)
@@ -1221,8 +1207,93 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-void CDlg3DViewer::Prepare3D()
+void CDlg3DViewer::Prepare3D(CString sPath)
 {
+	CString sData = _T("");
+	cv::Scalar scalarAvg;
+	double  dLastAvg = 0.0;
+
+	if (IsFileDatx(sPath))
+	{
+		sData = ExtractInfoDatx(sPath);
+		dLastAvg = _tstof(sData);
+	}
+	else if (IsFileXYZ(sPath))
+	{
+		sData = ExtractInfoXYZ(sPath);
+		scalarAvg = cv::mean(m_matrixZ); // memory leak
+		dLastAvg = scalarAvg[0];
+	}
+	else
+	{
+		AfxMessageBox(_T("Doesn't supported file!!!"));
+		return;
+	}
+
+	SSR3DData *S3DData = Get3DData();
+
+	if (IsFileXYZ(sPath))
+	{
+		double dLastMax = -9999999;
+		double dLastMin = 9999999;
+		minMaxLoc(m_matrixZ, &dLastMin, &dLastMax); // memory leak
+
+		double dAvg = GetDepthAvg(m_matrixZ); // memory leak
+		//double dAvg = 1.0;
+
+		int nPixels = m_matrixZ.rows * m_matrixZ.cols;
+		double dStdev = 0;
+		double dVar = 0;
+
+		for (int j = 0; j < m_matrixZ.rows; j++)
+		{
+			for (int i = 0; i < m_matrixZ.cols; i++)
+			{
+				float fColor = m_matrixZ.at<float>(j, i);// 한 픽셀식 검사 
+				dVar += (dAvg - fColor)*(dAvg - fColor);
+			}
+		}
+		dStdev = sqrt(dVar / nPixels);
+
+		for (int j = 0; j < m_matrixZ.rows; j++)
+		{
+			for (int i = 0; i < m_matrixZ.cols; i++)
+			{
+				float fColor = m_matrixZ.at<float>(j, i);// 한 픽셀식 검사 
+
+				if (fabs(fColor - dAvg) > dStdev * 3)
+				{
+					fColor = dAvg;
+				}
+				m_matrixZ.at<float>(j, i) = fColor;
+			}
+		}
+
+		S3DData->m_dAvg = dLastAvg;
+		S3DData->m_dMax = dLastMax;
+		S3DData->m_dMin = dLastMin;
+		S3DData->m_dStdev = dStdev;
+	}
+
+	S3DData->m_nSizeX = m_matrixZ.cols;
+	S3DData->m_nSizeY = m_matrixZ.rows;
+	S3DData->m_matDepthMap = m_matrixZ.clone();
+	//S3DData->m_dAvg = dLastAvg;
+	//S3DData->m_dMax = dLastMax;
+	//S3DData->m_dMin = dLastMin;
+	//S3DData->m_dStdev = dStdev;
+	S3DData->m_dScanStart = m_fpos_start;
+	S3DData->m_dScanEnd = m_fpos_end;
+	S3DData->m_dTgu = m_fpos_tgu;
+	S3DData->m_dTgd = m_fpos_tgd;
+	S3DData->m_dRamp = m_fScan_Ramp;
+	S3DData->m_dRange = m_fScan_Range;
+	S3DData->m_dXResolution = m_stZygoInfo3D.dResolution;
+	S3DData->m_dYResolution = m_stZygoInfo3D.dResolution;
+	//S3DData->m_dXResolution = _3D_RESOLUTION;
+	//S3DData->m_dYResolution = _3D_RESOLUTION;
+	S3DData->m_bValid = 1;
+	m_draw.SetResolution(m_stZygoInfo3D.dResolution * 1000.0, m_stZygoInfo3D.dResolution * 1000.0); // [um/pixel]
 }
 
 void CDlg3DViewer::Display3D()

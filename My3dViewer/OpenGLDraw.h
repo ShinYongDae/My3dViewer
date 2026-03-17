@@ -31,6 +31,7 @@ using namespace std;
 
 class COpenGLDraw : public GInterPolation, public COpenGLFontCam
 {
+	double m_dXResolution, m_dYResolution;
 	char* StringToChar(CString str);
 
 private:
@@ -41,6 +42,8 @@ private:
 public:
 	COpenGLDraw();
 	virtual ~COpenGLDraw();
+
+	void SetResolution(double dX, double dY);
 
 	void GetArcVertices(vector<DPOINT> &vecPt,const DPOINT &ptCenter,GLfloat radius,GLfloat start_angle, GLfloat arc_angle,int dir);
 	void GetArcVertices(vector<DPOINT> &vecPt,double fSx, double fSy, double fEx, double fEy, double fCx, double fCy, int nDir);
