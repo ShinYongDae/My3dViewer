@@ -269,8 +269,8 @@ void CMy3dViewerDlg::OnBnClickedButton1()
 		return;
 	}
 
-	m_viewer.Grab(sPath);
-	AfxMessageBox(_T("Complete loading 3D File."));
+	if(m_viewer.Grab(sPath))
+		AfxMessageBox(_T("Complete loading 3D File."));
 }
 
 

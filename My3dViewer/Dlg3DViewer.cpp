@@ -223,14 +223,14 @@ char* CDlg3DViewer::StringToChar(CString str)
 	return szStr;
 }
 
-CString CDlg3DViewer::ExtractInfoXYZ(CString sPath)
+BOOL CDlg3DViewer::ExtractInfoXYZ(CString sPath)
 {
 	CString sLine, sData = _T("");
 	CStdioFile stdfile;	// Text로 파일을 ofen. (Data format : char형)
 	if (!stdfile.Open(sPath, CFile::modeRead | CFile::shareDenyNone, NULL))
 	{
-		AfxMessageBox(_T("Fail to load Info."));
-		return sData;
+		AfxMessageBox(_T("Fail to load XYZ_File of Zygo."));
+		return FALSE;
 	}
 
 	RemoveAllZygoXYZ();
@@ -385,7 +385,7 @@ CString CDlg3DViewer::ExtractInfoXYZ(CString sPath)
 	//uint ySize = nLinesRowX;
 	//m_matrixZ = cv::Mat(ySize, xSize, CV_32FC1); // ( row, col, 32비트 부동소수점(float) 자료형 )
 	//m_matrixA = cv::Mat(ySize, xSize, CV_8UC1);
-
+	//
 	//int nidx = 0;
 	//COPY RAW DATA
 	//for (uint i = 0; i < ySize; i++) 
@@ -399,17 +399,17 @@ CString CDlg3DViewer::ExtractInfoXYZ(CString sPath)
 	//	}
 	//}
 
-	return sData;
+	return TRUE;
 }
 
-CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
+BOOL CDlg3DViewer::ExtractInfoDatx(CString sPath)
 {
 	CString sLine, sData = _T("");
 	CStdioFile stdfile;	// Text로 파일을 ofen. (Data format : char형)
 	if (!stdfile.Open(sPath, CFile::modeRead | CFile::shareDenyNone, NULL))
 	{
 		AfxMessageBox(_T("Fail to load Info."));
-		return sData;
+		return FALSE;
 	}
 
 	RemoveAllZygoXYZ();
@@ -420,6 +420,7 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 	int nPixels = 0;
 	double dStdev = 0;
 	double dVar = 0;
+	float* data_out = nullptr;
 
 	char* filepath = StringToChar(sPath);
 	try 
@@ -444,7 +445,7 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		nPixels = nSizeRow * nSizeCol;
 
 		// 데이터 읽기 (float 배열 등)
-		float* data_out = new float[dims[0] * dims[1]];
+		data_out = new float[dims[0] * dims[1]];
 		dataset.read(data_out, PredType::NATIVE_FLOAT);
 
 		//// Allocate memory to read data (assuming float/double)
@@ -456,17 +457,22 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		cv::Mat mat(dims[0], dims[1], CV_32FC1, data_out);
 
 		// NaN 및 Inf 필터링 방법 1: cv::patchNaNs (NaN만 해결)
+		cv::Mat patched = mat.clone();
+		cv::patchNaNs(patched, 0.0); // NaN을 0으로 변환
+		//std::cout << "patchNaNs 후 (0으로 대체):\n" << patched << std::endl;
+
+		// NaN 및 Inf 필터링 방법 1: cv::patchNaNs (NaN만 해결)
 		cv::Mat mask;
 		// 절대값이 너무 큰 값(무한대)을 마스킹
-		cv::absdiff(mat, cv::Scalar(0), mask);
+		cv::absdiff(patched, cv::Scalar(0), mask);
 		cv::compare(mask, 1e10, mask, cv::CMP_GT); // 10^10 보다 크면 무한대로 간주
-		// 3. 필터링된 위치에 특정값(예: 0) 대입
-		mat.setTo(0, mask);
+		// 필터링된 위치에 특정값(예: 0) 대입
+		patched.setTo(0, mask);
 
 
 		// cv::mean() 함수를 사용하여 평균 계산
 		// cv::mean은 cv::Scalar(4개 채널까지)를 반환합니다.
-		cv::Scalar meanScalar = cv::mean(mat);
+		cv::Scalar meanScalar = cv::mean(patched);
 
 		// 결과 출력 (채널이 1개이므로 meanScalar[0]에 평균값이 저장됨)
 		double average = meanScalar[0] / (float)1000000.0; // [mm]
@@ -476,7 +482,7 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		Group attributeGroup = dataGroup.openGroup("Attributes");
 		H5::Attribute attr;
 		std::string attrName;
-		attrName = "Data Context.Data Attributes.attr.wavelength_in";
+		attrName = "Data Context.Data Attributes.Wavelength:Value";
 		if (attributeGroup.attrExists(attrName)) 
 		{
 			attr = attributeGroup.openAttribute(attrName);
@@ -489,11 +495,22 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		}
 		else 
 		{
+			delete filepath;
+			if (nullptr != data_out)
+			{
+				delete[] data_out;
+				data_out = nullptr;
+			}
+			dataset.close();
+			dataGroup.close();
+			file.close();
+
 			AfxMessageBox(_T("Attribute : Data Context.Data Attributes.attr.wavelength_in not found."));
 			//std::cout << "Attribute " << attrName << " not found." << std::endl;
+			return FALSE;
 		}
 
-		attrName = "Data Context.Data Attributes.attr.lateral_res";
+		attrName = "Data Context.Lateral Resolution:Value";
 		if (attributeGroup.attrExists(attrName)) 
 		{
 			attr = attributeGroup.openAttribute(attrName);
@@ -506,8 +523,19 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		}
 		else 
 		{
+			delete filepath;
+			if (nullptr != data_out)
+			{
+				delete[] data_out;
+				data_out = nullptr;
+			}
+			dataset.close();
+			dataGroup.close();
+			file.close();
+
 			AfxMessageBox(_T("Attribute : Data Context.Data Attributes.attr.lateral_res not found."));
 			//std::cout << "Attribute " << attrName << " not found." << std::endl;
+			return FALSE;
 		}
 
 
@@ -552,19 +580,39 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		dStdev = sqrt(dVar / nPixels);
 		// Data is now in 'data' vector - process as needed
 		//std::cout << "Successfully read data." << std::endl;
-
-		delete [] data_out;
+		delete filepath;
+		if (nullptr != data_out)
+		{
+			delete[] data_out;
+			data_out = nullptr;
+		}
 		dataset.close();
 		dataGroup.close();
 		file.close();
 	}
 	catch (FileIException &error)
 	{
+		delete filepath;
+		if (nullptr != data_out)
+		{
+			delete[] data_out;
+			data_out = nullptr;
+		}
+		AfxMessageBox(_T("File or Group Exception error of datx file!!!"));
 		error.printErrorStack();
+		return FALSE;
 	}
 	catch (DataSetIException &error)
 	{
+		delete filepath;
+		if (nullptr != data_out)
+		{
+			delete[] data_out;
+			data_out = nullptr;
+		}
+		AfxMessageBox(_T("DataSet Exception error of datx file!!!"));
 		error.printErrorStack();
+		return FALSE;
 	}
 
 	delete filepath;
@@ -598,8 +646,8 @@ CString CDlg3DViewer::ExtractInfoDatx(CString sPath)
 	S3DData->m_dMin = dLastMin;
 	S3DData->m_dStdev = dStdev;
 
-	sData.Format(_T("%f"), dLastAvg);
-	return sData;
+	//sData.Format(_T("%f"), dLastAvg);
+	return TRUE;;
 }
 
 void CDlg3DViewer::RemoveAllZygoXYZ()
@@ -656,14 +704,19 @@ BOOL CDlg3DViewer::IsFileXYZ(CString sPath)
 	return FALSE;
 }
 
-void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
+BOOL CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 {
 	DWORD dwStartTick = GetTickCount();
+	BOOL bPrevFitSuccess = m_bFitSuccess;
 	m_bFitSuccess = FALSE;
 
 	//cv::setNumThreads(0);
 	//vec.clear(); // 더 이상 필요 없으면,
-	Prepare3D(sPath);
+	if (!Prepare3D(sPath))
+	{
+		m_bFitSuccess = bPrevFitSuccess;
+		return FALSE;
+	}
 	Display3D();
 	((CMy3dViewerDlg*)m_pParentWnd)->SetMinMax(m_fMin, m_fMax);
 	Auto3D();
@@ -672,6 +725,7 @@ void CDlg3DViewer::Grab(CString sPath) // "C:\\AORSet\\Data3D\\%d-%d.exr"
 	DWORD nElapsed = GetTickCount() - dwStartTick;
 	str.Format(_T("%d"), nElapsed);
 	GetDlgItem(IDC_EDIT_LOADING_TIME)->SetWindowText(str);
+	return TRUE;
 }
 
 float CDlg3DViewer::GetDepthAvg(cv::Mat &matrixZ)
@@ -1207,7 +1261,7 @@ LRESULT CDlg3DViewer::OnGLRender(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-void CDlg3DViewer::Prepare3D(CString sPath)
+BOOL CDlg3DViewer::Prepare3D(CString sPath)
 {
 	CString sData = _T("");
 	cv::Scalar scalarAvg;
@@ -1215,19 +1269,21 @@ void CDlg3DViewer::Prepare3D(CString sPath)
 
 	if (IsFileDatx(sPath))
 	{
-		sData = ExtractInfoDatx(sPath);
+		if (!ExtractInfoDatx(sPath))
+			return FALSE;
 		dLastAvg = _tstof(sData);
 	}
 	else if (IsFileXYZ(sPath))
 	{
-		sData = ExtractInfoXYZ(sPath);
+		if (!ExtractInfoXYZ(sPath))
+			return FALSE;
 		scalarAvg = cv::mean(m_matrixZ); // memory leak
 		dLastAvg = scalarAvg[0];
 	}
 	else
 	{
 		AfxMessageBox(_T("Doesn't supported file!!!"));
-		return;
+		return FALSE;
 	}
 
 	SSR3DData *S3DData = Get3DData();
@@ -1294,6 +1350,8 @@ void CDlg3DViewer::Prepare3D(CString sPath)
 	//S3DData->m_dYResolution = _3D_RESOLUTION;
 	S3DData->m_bValid = 1;
 	m_draw.SetResolution(m_stZygoInfo3D.dResolution * 1000.0, m_stZygoInfo3D.dResolution * 1000.0); // [um/pixel]
+
+	return TRUE;
 }
 
 void CDlg3DViewer::Display3D()
