@@ -1552,6 +1552,9 @@ void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point)
 				FitToScreen(fRectZoom,0);
 				AddHistory(m_nOpMode);
 			}
+
+			if(m_pParentWnd)
+				m_pParentWnd->SendMessage(WM_BUTTON_ZOOM, 0, 0);
 		}
 		break;
 	case OPEN_GL::SET_PIECE:

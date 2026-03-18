@@ -231,6 +231,7 @@ BOOL COpenGLViewEx::SetCoordinate(CdSize fWorldSize, CdPoint fptStart, CdPoint f
 BOOL COpenGLViewEx::SetCoordinate(int nDlgId, CWnd *Dlg,CdSize fSize, CdPoint fptStart, CdPoint fptOffset)
 {
 	m_bDrawFirst = TRUE;
+
 	CAutoBool Auto(&m_bAdjustCoordinate);
 	CRect rect;
 

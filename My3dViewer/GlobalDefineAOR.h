@@ -271,6 +271,9 @@
 #define WM_ALIGN_LIGHT_UI									(WM_USER+1111)
 #endif
 
+
+#define WM_BUTTON_ZOOM										(WM_USER+1112)
+
 #define MAX_SAVED_POS										10
 #define ANGLE_RANGE											46
 #define PIECE_USER_ID_PATH	_T("C:\\AorSet\\PieceCode.ini")

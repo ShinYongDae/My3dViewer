@@ -162,6 +162,7 @@ public:
 	COLORREF m_crBackGround;
 	double	m_fFitSpace;
 
+
 // Operations
 	public:
 	

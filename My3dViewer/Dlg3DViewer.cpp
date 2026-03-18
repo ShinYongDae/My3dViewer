@@ -102,6 +102,7 @@ void CDlg3DViewer::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CDlg3DViewer, CDialog)
+	ON_MESSAGE(WM_BUTTON_ZOOM, OnBtnZoom)
 	ON_MESSAGE(WM_UPDATE_3D_MODEL, OnUpdate3DModel)
 	ON_MESSAGE(WM_USER_RENDER, OnGLRender)
 	ON_BN_CLICKED(IDC_CHECK_ZOOM, &CDlg3DViewer::OnBnClickedCheckZoom)
@@ -169,6 +170,25 @@ void CDlg3DViewer::InitReference(int nIndex, CWnd *pView, CWnd *pViewPiece, CWnd
 	{
 		m_pReferenceData[nIndex] = new CReferenceData(pView, pViewPiece, pViewMask, this, nIndex);
 	}
+}
+
+LRESULT CDlg3DViewer::OnBtnZoom(WPARAM wParam, LPARAM lParam)
+{
+	BOOL bOn = (BOOL)lParam;
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(bOn);
+
+	if (bOn)
+	{
+		m_pView->SetOpMode(OPEN_GL::RECT_ZOOM);
+		m_bOpMode = 1;
+	}
+	else
+	{
+		m_bOpMode = 0;
+		m_pView->SetOpMode(OPEN_GL::NONE);
+	}
+
+	return 0;
 }
 
 LRESULT CDlg3DViewer::OnUpdate3DModel(WPARAM wParam, LPARAM lParam)
@@ -429,10 +449,14 @@ BOOL CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		H5File file(filepath, H5F_ACC_RDONLY);
 
 		// Open the "data" group where topography is stored
-		Group dataGroup = file.openGroup("Measurement");
+		Group dataGroup = file.openGroup("/Data/Surface");
+
+		// Find the specific metadata subgroup (usually labeled, often the first)
+		hsize_t numObjs = dataGroup.getNumObjs();
+		std::string SubgroupName0 = dataGroup.getObjnameByIdx(0);
 
 		// Open the dataset containing the spatial data (often "intensity" or "phase")
-		DataSet dataset = dataGroup.openDataSet("Surface");
+		DataSet dataset = dataGroup.openDataSet(SubgroupName0);
 
 		// Get dataspace to understand dimensions
 		DataSpace dataspace = dataset.getSpace();
@@ -477,15 +501,21 @@ BOOL CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		// 결과 출력 (채널이 1개이므로 meanScalar[0]에 평균값이 저장됨)
 		double average = meanScalar[0] / (float)1000000.0; // [mm]
 
+		// Open the "data" group where topography is stored
+		Group attributeGroup = file.openGroup("/Attributes");
+
+		// Find the specific metadata subgroup (usually labeled, often the first)
+		hsize_t numObjs1 = attributeGroup.getNumObjs();
+		std::string SubgroupName1 = attributeGroup.getObjnameByIdx(numObjs1 - 1);
 
 		// 속성에서 파장과 해상도를 읽어옴.
-		Group attributeGroup = dataGroup.openGroup("Attributes");
+		Group attributeSubGroup = attributeGroup.openGroup(SubgroupName1);
 		H5::Attribute attr;
 		std::string attrName;
 		attrName = "Data Context.Data Attributes.Wavelength:Value";
-		if (attributeGroup.attrExists(attrName)) 
+		if (attributeSubGroup.attrExists(attrName))
 		{
-			attr = attributeGroup.openAttribute(attrName);
+			attr = attributeSubGroup.openAttribute(attrName);
 
 			// Assuming the attribute is a double
 			double wavelength_in;
@@ -510,10 +540,10 @@ BOOL CDlg3DViewer::ExtractInfoDatx(CString sPath)
 			return FALSE;
 		}
 
-		attrName = "Data Context.Lateral Resolution:Value";
-		if (attributeGroup.attrExists(attrName)) 
+		attrName = "Surface Data Context.Lateral Resolution:Value";
+		if (attributeSubGroup.attrExists(attrName))
 		{
-			attr = attributeGroup.openAttribute(attrName);
+			attr = attributeSubGroup.openAttribute(attrName);
 
 			// Assuming the attribute is a double
 			double lateralResolution;
@@ -615,7 +645,7 @@ BOOL CDlg3DViewer::ExtractInfoDatx(CString sPath)
 		return FALSE;
 	}
 
-	delete filepath;
+	//delete filepath;
 
 	//for (int j = 0; j < m_matrixZ.rows; j++)
 	//{
@@ -1539,6 +1569,7 @@ void CDlg3DViewer::OnBnClickedCheckZoom()
 void CDlg3DViewer::OnBnClickedCheckZoomin()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
 	m_pView->ZoomIn(2);
 	((CButton*)GetDlgItem(IDC_CHECK_ZOOMIN))->SetCheck(0);
 }
@@ -1547,6 +1578,7 @@ void CDlg3DViewer::OnBnClickedCheckZoomin()
 void CDlg3DViewer::OnBnClickedCheckZoomout()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
 	m_pView->ZoomOut(2);
 	((CButton*)GetDlgItem(IDC_CHECK_ZOOMOUT))->SetCheck(0);
 }

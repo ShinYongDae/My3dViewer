@@ -117,6 +117,7 @@ public:
 public:
 	LRESULT OnUpdate3DModel(WPARAM wParam, LPARAM lParam);
 	LRESULT OnGLRender(WPARAM wParam, LPARAM lParam);
+	LRESULT OnBtnZoom(WPARAM wParam, LPARAM lParam);
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
