@@ -19,12 +19,13 @@ class CMy3dViewerDlg : public CDialog
 	CRect m_rectResult;
 	float m_fMax, m_fMin; // [mm]
 
-	BOOL FileBrowse(CString& sPath);
+	BOOL FileBrowse(CString& sPath, CString sType);
 	void Refresh();
 	void RefreshDlg();
 	void DrawMat(HDC hDC, cv::Mat& img);
 	void DrawMat(HDC hDC, cv::Mat& img, int x, int y, int dw, int dh);
 	char* StringToChar(CString str);
+	TCHAR* StringToTCHAR(CString str);
 
 // 생성입니다.
 public:
@@ -62,4 +63,6 @@ public:
 	afx_msg void OnMove(int x, int y);
 	afx_msg void OnDestroy();
 	afx_msg void OnBnClickedButton2();
+	afx_msg void OnBnClickedButton3();
+	afx_msg void OnBnClickedButton4();
 };

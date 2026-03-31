@@ -87,6 +87,15 @@
     <ClInclude Include="Matching.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="XceedZipControl.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CXceedZip.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="tinyxml2.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="My3dViewer.cpp">
@@ -129,6 +138,12 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Matching.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="XceedZipControl.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxml2.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

@@ -8,6 +8,8 @@
 #include "GlobalDefineAOR.h"
 #include "My3dViewerDlg.h"
 #include "H5Cpp.h"
+#include "XceedZipControl.h"
+#include "tinyxml2.h"
 
 using namespace H5;
 
@@ -1296,6 +1298,7 @@ BOOL CDlg3DViewer::Prepare3D(CString sPath)
 	CString sData = _T("");
 	cv::Scalar scalarAvg;
 	double  dLastAvg = 0.0;
+	int i, j;
 
 	if (IsFileDatx(sPath))
 	{
@@ -1341,9 +1344,9 @@ BOOL CDlg3DViewer::Prepare3D(CString sPath)
 		}
 		dStdev = sqrt(dVar / nPixels);
 
-		for (int j = 0; j < m_matrixZ.rows; j++)
+		for (j = 0; j < m_matrixZ.rows; j++)
 		{
-			for (int i = 0; i < m_matrixZ.cols; i++)
+			for (i = 0; i < m_matrixZ.cols; i++)
 			{
 				float fColor = m_matrixZ.at<float>(j, i);// 한 픽셀식 검사 
 
@@ -1364,6 +1367,12 @@ BOOL CDlg3DViewer::Prepare3D(CString sPath)
 	S3DData->m_nSizeX = m_matrixZ.cols;
 	S3DData->m_nSizeY = m_matrixZ.rows;
 	S3DData->m_matDepthMap = m_matrixZ.clone();
+
+	S3DData->m_matFlu = m_matrixA.clone();
+	S3DData->m_matAllDefect = m_matrixA.clone();
+	S3DData->m_matRefCD = m_matrixA.clone();
+	S3DData->m_matRefImg = m_matrixA.clone();
+
 	//S3DData->m_dAvg = dLastAvg;
 	//S3DData->m_dMax = dLastMax;
 	//S3DData->m_dMin = dLastMin;
@@ -1592,6 +1601,992 @@ void CDlg3DViewer::OnBnClickedCheckFit()
 	InitParamRendering();
 	m_pView->FitToScreen();
 	((CButton*)GetDlgItem(IDC_CHECK_FIT))->SetCheck(0);
+}
+
+
+void CDlg3DViewer::SaveXMLCompress3D(CString strPath)
+{
+	SSR3DData* S3DData = Get3DData();
+	S3DData->m_bLoadManual3D = TRUE;
+
+	if (!S3DData->m_bLoadManual3D)
+	{
+		if (!S3DData->m_matDepthMap.empty() && !S3DData->m_matFlu.empty() && !S3DData->m_matAllDefect.empty() && !S3DData->m_matRefCD.empty() && !S3DData->m_matRefImg.empty())
+		{
+
+			CXceedZipControl XceedZipControl;
+			CString strData;
+			CTime currentTime = CTime::GetCurrentTime();
+			char *pText;
+			tinyxml2::XMLDocument doc;
+			tinyxml2::XMLDeclaration *decl = doc.NewDeclaration();
+			doc.LinkEndChild(decl);
+
+			tinyxml2::XMLElement *root = doc.NewElement("root");
+			doc.LinkEndChild(root);
+
+			tinyxml2::XMLElement *xmlTime = doc.NewElement("Time");
+			strData.Format(_T("%04d/%d/%d %02d:%02d:%02d"), currentTime.GetYear(), currentTime.GetMonth(),
+				currentTime.GetDay(), currentTime.GetHour(), currentTime.GetMinute(),
+				currentTime.GetSecond());
+			pText = StringToChar(strData);
+			xmlTime->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlTime);
+
+			tinyxml2::XMLElement *xmlVision = doc.NewElement("Version");
+			strData.Format(_T("5"));
+			pText = StringToChar(strData);
+			xmlVision->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlVision);
+
+			tinyxml2::XMLElement *xmlManual = doc.NewElement("Manual");
+			strData.Format(_T("%d"), S3DData->m_bLoadManual3D);
+			pText = StringToChar(strData);
+			xmlManual->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlManual);
+
+			tinyxml2::XMLElement *xmlSizeX = doc.NewElement("SizeX");
+			strData.Format(_T("%d"), S3DData->m_nSizeX);
+			pText = StringToChar(strData);
+			xmlSizeX->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlSizeX);
+
+			tinyxml2::XMLElement *xmlSizeY = doc.NewElement("SizeY");
+			strData.Format(_T("%d"), S3DData->m_nSizeY);
+			pText = StringToChar(strData);
+			xmlSizeY->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlSizeY);
+
+			tinyxml2::XMLElement *xmlResolutionX = doc.NewElement("XResolution");
+			strData.Format(_T("%f"), S3DData->m_dXResolution);
+			pText = StringToChar(strData);
+			xmlResolutionX->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlResolutionX);
+
+			tinyxml2::XMLElement *xmlResolutionY = doc.NewElement("YResolution");
+			strData.Format(_T("%f"), S3DData->m_dYResolution);
+			pText = StringToChar(strData);
+			xmlResolutionY->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlResolutionY);
+
+			tinyxml2::XMLElement *xmlMax = doc.NewElement("Max");
+			strData.Format(_T("%f"), S3DData->m_dMax);
+			pText = StringToChar(strData);
+			xmlMax->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlMax);
+
+			tinyxml2::XMLElement *xmlMin = doc.NewElement("Min");
+			strData.Format(_T("%f"), S3DData->m_dMin);
+			pText = StringToChar(strData);
+			xmlMin->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlMin);
+
+			tinyxml2::XMLElement *xmlAvg = doc.NewElement("Avg");
+			strData.Format(_T("%f"), S3DData->m_dAvg);
+			pText = StringToChar(strData);
+			xmlAvg->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlAvg);
+
+			tinyxml2::XMLElement *xmlStdev = doc.NewElement("Stdev");
+			strData.Format(_T("%f"), S3DData->m_dStdev);
+			pText = StringToChar(strData);
+			xmlStdev->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlStdev);
+
+			tinyxml2::XMLElement *xmlScanStart = doc.NewElement("ScanStart");
+			strData.Format(_T("%f"), S3DData->m_dScanStart);
+			pText = StringToChar(strData);
+			xmlScanStart->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlScanStart);
+
+			tinyxml2::XMLElement *xmlScanEnd = doc.NewElement("ScanEnd");
+			strData.Format(_T("%f"), S3DData->m_dScanEnd);
+			pText = StringToChar(strData);
+			xmlScanEnd->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlScanEnd);
+
+			tinyxml2::XMLElement *xmlTgu = doc.NewElement("Tgu");
+			strData.Format(_T("%f"), S3DData->m_dTgu);
+			pText = StringToChar(strData);
+			xmlTgu->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlTgu);
+
+			tinyxml2::XMLElement *xmlTgd = doc.NewElement("Tgd");
+			strData.Format(_T("%f"), S3DData->m_dTgd);
+			pText = StringToChar(strData);
+			xmlTgd->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlTgd);
+
+			tinyxml2::XMLElement *xmlRange = doc.NewElement("Range");
+			strData.Format(_T("%f"), S3DData->m_dRange);
+			pText = StringToChar(strData);
+			xmlRange->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlRange);
+
+			tinyxml2::XMLElement *xmlRamp = doc.NewElement("Ramp");
+			strData.Format(_T("%f"), S3DData->m_dRamp);
+			pText = StringToChar(strData);
+			xmlRamp->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlRamp);
+
+			tinyxml2::XMLElement *xmlMatchingPTX = doc.NewElement("MatchingPTX");
+			strData.Format(_T("%f"), S3DData->m_dMatchingPTX);
+			pText = StringToChar(strData);
+			xmlMatchingPTX->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlMatchingPTX);
+
+			tinyxml2::XMLElement *xmlMatchingPTY = doc.NewElement("MatchingPTY");
+			strData.Format(_T("%f"), S3DData->m_dMatchingPTY);
+			pText = StringToChar(strData);
+			xmlMatchingPTY->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlMatchingPTY);
+
+
+			tinyxml2::XMLElement *xmlMatchingScale = doc.NewElement("MatchingScale");
+			strData.Format(_T("%f"), S3DData->m_dMatchingScale);
+			pText = StringToChar(strData);
+			xmlMatchingScale->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlMatchingScale);
+
+			tinyxml2::XMLElement *xmlMatchingTheta = doc.NewElement("MatchingTheta");
+			strData.Format(_T("%f"), S3DData->m_dMatchingTheta);
+			pText = StringToChar(strData);
+			xmlMatchingTheta->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlMatchingTheta);
+
+			tinyxml2::XMLElement *xmlMatchingErode = doc.NewElement("MatchingErode");
+			strData.Format(_T("%f"), S3DData->m_dMatchingErode);
+			pText = StringToChar(strData);
+			xmlMatchingErode->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlMatchingErode);
+
+			tinyxml2::XMLElement *xmlDepthMap = doc.NewElement("DepthMap");
+			strData = XceedZipControl.ImgCompressToCString(S3DData->m_matDepthMap, FALSE);
+			pText = StringToChar(strData);
+			xmlDepthMap->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlDepthMap);
+
+			tinyxml2::XMLElement *xmlFlu = doc.NewElement("Flu");
+			strData = XceedZipControl.ImgCompressToCString(S3DData->m_matFlu, TRUE);
+			pText = StringToChar(strData);
+			xmlFlu->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlFlu);
+
+			tinyxml2::XMLElement *xmlAllDefect = doc.NewElement("AllDefect");
+			strData = XceedZipControl.ImgCompressToCString(S3DData->m_matAllDefect, TRUE);
+			pText = StringToChar(strData);
+			xmlAllDefect->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlAllDefect);
+
+			tinyxml2::XMLElement *xmlRefCD = doc.NewElement("RefCD");
+			strData = XceedZipControl.ImgCompressToCString(S3DData->m_matRefCD, TRUE);
+			pText = StringToChar(strData);
+			xmlRefCD->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlRefCD);
+
+			tinyxml2::XMLElement *xmlRefImg = doc.NewElement("RefImg");
+			strData = XceedZipControl.ImgCompressToCString(S3DData->m_matRefImg, TRUE);
+			pText = StringToChar(strData);
+			xmlRefImg->LinkEndChild(doc.NewText(pText));
+			delete pText;
+			pText = NULL;
+			root->LinkEndChild(xmlRefImg);
+
+			pText = StringToChar(strPath);
+			doc.SaveFile(pText);
+			delete pText;
+			pText = NULL;
+		}
+	}
+	else
+	{
+		CXceedZipControl XceedZipControl;
+		CString strData;
+		CTime currentTime = CTime::GetCurrentTime();
+		char *pText;
+		tinyxml2::XMLDocument doc;
+		tinyxml2::XMLDeclaration *decl = doc.NewDeclaration();
+		doc.LinkEndChild(decl);
+
+		tinyxml2::XMLElement *root = doc.NewElement("root");
+		doc.LinkEndChild(root);
+
+		tinyxml2::XMLElement *xmlTime = doc.NewElement("Time");
+		strData.Format(_T("%04d/%d/%d %02d:%02d:%02d"), currentTime.GetYear(), currentTime.GetMonth(),
+			currentTime.GetDay(), currentTime.GetHour(), currentTime.GetMinute(),
+			currentTime.GetSecond());
+		pText = StringToChar(strData);
+		xmlTime->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlTime);
+
+		tinyxml2::XMLElement *xmlVision = doc.NewElement("Version");
+		strData.Format(_T("5"));
+		pText = StringToChar(strData);
+		xmlVision->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlVision);
+
+		tinyxml2::XMLElement *xmlManual = doc.NewElement("Manual");
+		strData.Format(_T("%d"), S3DData->m_bLoadManual3D);
+		pText = StringToChar(strData);
+		xmlManual->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlManual);
+
+		tinyxml2::XMLElement *xmlSizeX = doc.NewElement("SizeX");
+		strData.Format(_T("%d"), S3DData->m_nSizeX);
+		pText = StringToChar(strData);
+		xmlSizeX->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlSizeX);
+
+		tinyxml2::XMLElement *xmlSizeY = doc.NewElement("SizeY");
+		strData.Format(_T("%d"), S3DData->m_nSizeY);
+		pText = StringToChar(strData);
+		xmlSizeY->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlSizeY);
+
+		tinyxml2::XMLElement *xmlResolutionX = doc.NewElement("XResolution");
+		strData.Format(_T("%f"), S3DData->m_dXResolution);
+		pText = StringToChar(strData);
+		xmlResolutionX->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlResolutionX);
+
+		tinyxml2::XMLElement *xmlResolutionY = doc.NewElement("YResolution");
+		strData.Format(_T("%f"), S3DData->m_dYResolution);
+		pText = StringToChar(strData);
+		xmlResolutionY->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlResolutionY);
+
+		tinyxml2::XMLElement *xmlMax = doc.NewElement("Max");
+		strData.Format(_T("%f"), S3DData->m_dMax);
+		pText = StringToChar(strData);
+		xmlMax->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlMax);
+
+		tinyxml2::XMLElement *xmlMin = doc.NewElement("Min");
+		strData.Format(_T("%f"), S3DData->m_dMin);
+		pText = StringToChar(strData);
+		xmlMin->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlMin);
+
+		tinyxml2::XMLElement *xmlAvg = doc.NewElement("Avg");
+		strData.Format(_T("%f"), S3DData->m_dAvg);
+		pText = StringToChar(strData);
+		xmlAvg->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlAvg);
+
+		tinyxml2::XMLElement *xmlStdev = doc.NewElement("Stdev");
+		strData.Format(_T("%f"), S3DData->m_dStdev);
+		pText = StringToChar(strData);
+		xmlStdev->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlStdev);
+
+		tinyxml2::XMLElement *xmlScanStart = doc.NewElement("ScanStart");
+		strData.Format(_T("%f"), S3DData->m_dScanStart);
+		pText = StringToChar(strData);
+		xmlScanStart->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlScanStart);
+
+		tinyxml2::XMLElement *xmlScanEnd = doc.NewElement("ScanEnd");
+		strData.Format(_T("%f"), S3DData->m_dScanEnd);
+		pText = StringToChar(strData);
+		xmlScanEnd->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlScanEnd);
+
+		tinyxml2::XMLElement *xmlTgu = doc.NewElement("Tgu");
+		strData.Format(_T("%f"), S3DData->m_dTgu);
+		pText = StringToChar(strData);
+		xmlTgu->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlTgu);
+
+		tinyxml2::XMLElement *xmlTgd = doc.NewElement("Tgd");
+		strData.Format(_T("%f"), S3DData->m_dTgd);
+		pText = StringToChar(strData);
+		xmlTgd->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlTgd);
+
+		tinyxml2::XMLElement *xmlRange = doc.NewElement("Range");
+		strData.Format(_T("%f"), S3DData->m_dRange);
+		pText = StringToChar(strData);
+		xmlRange->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlRange);
+
+		tinyxml2::XMLElement *xmlRamp = doc.NewElement("Ramp");
+		strData.Format(_T("%f"), S3DData->m_dRamp);
+		pText = StringToChar(strData);
+		xmlRamp->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlRamp);
+
+		tinyxml2::XMLElement *xmlMatchingPTX = doc.NewElement("MatchingPTX");
+		strData.Format(_T("%f"), S3DData->m_dMatchingPTX);
+		pText = StringToChar(strData);
+		xmlMatchingPTX->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlMatchingPTX);
+
+		tinyxml2::XMLElement *xmlMatchingPTY = doc.NewElement("MatchingPTY");
+		strData.Format(_T("%f"), S3DData->m_dMatchingPTY);
+		pText = StringToChar(strData);
+		xmlMatchingPTY->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlMatchingPTY);
+
+
+		tinyxml2::XMLElement *xmlMatchingScale = doc.NewElement("MatchingScale");
+		strData.Format(_T("%f"), S3DData->m_dMatchingScale);
+		pText = StringToChar(strData);
+		xmlMatchingScale->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlMatchingScale);
+
+		tinyxml2::XMLElement *xmlMatchingTheta = doc.NewElement("MatchingTheta");
+		strData.Format(_T("%f"), S3DData->m_dMatchingTheta);
+		pText = StringToChar(strData);
+		xmlMatchingTheta->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlMatchingTheta);
+
+		tinyxml2::XMLElement *xmlMatchingErode = doc.NewElement("MatchingErode");
+		strData.Format(_T("%f"), S3DData->m_dMatchingErode);
+		pText = StringToChar(strData);
+		xmlMatchingErode->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlMatchingErode);
+
+		tinyxml2::XMLElement *xmlDepthMap = doc.NewElement("DepthMap");
+		strData = XceedZipControl.ImgCompressToCString(S3DData->m_matDepthMap, FALSE);
+		pText = StringToChar(strData);
+		xmlDepthMap->LinkEndChild(doc.NewText(pText));
+		delete pText;
+		pText = NULL;
+		root->LinkEndChild(xmlDepthMap);
+
+		pText = StringToChar(strPath);
+		doc.SaveFile(pText);
+		delete pText;
+		pText = NULL;
+	}
+}
+
+BOOL CDlg3DViewer::LoadXMLCompress3D(CString strPath)
+{
+	SSR3DData* S3DData = Get3DData();
+	S3DData->m_bLoadManual3D = TRUE;
+
+	CXceedZipControl XceedZipControl;
+	CString strElement, strAttrValue, strElementValue, strAttr, strTime;
+	tinyxml2::XMLDocument XMLDoc;
+	tinyxml2::XMLElement *pRootElement, *pSubElement;
+	const tinyxml2::XMLAttribute *pAttr;
+	char *pText;
+
+
+	S3DData->m_bValid = 0;
+
+	XMLDoc.LoadFile((CStringA)strPath);
+	pRootElement = XMLDoc.RootElement();
+	pSubElement = pRootElement->FirstChildElement()->ToElement();
+	while (pSubElement)
+	{
+		pText = (char*)pSubElement->Value();
+		strElement.Empty();
+		if (pText)
+		{
+			strElement = CharToString(pText);
+		}
+		pAttr = pSubElement->FirstAttribute();
+		while (pAttr)
+		{
+			pText = (char*)pAttr->Name();
+			strAttr.Empty();
+			if (pText)
+			{
+				strAttr = CharToString(pText);
+			}
+			pText = (char*)pAttr->Value();
+			strAttrValue.Empty();
+			if (pText)
+			{
+				strAttrValue = CharToString(pText);
+			}
+			pAttr = pAttr->Next();
+		}
+		pText = (char*)pSubElement->GetText();
+		strElementValue.Empty();
+		if (pText)
+		{
+			strElementValue = CharToString(pText);
+		}
+		if (strElement.CompareNoCase(_T("Time")) == 0)
+		{
+			//strTime = CharToString(pText);
+		}
+		if (strElement.CompareNoCase(_T("Version")) == 0)
+		{
+			S3DData->m_nVersion = _ttoi(CharToString(pText));
+		}
+		if (S3DData->m_nVersion > 3)
+		{
+			if (strElement.CompareNoCase(_T("Manual")) == 0)
+			{
+				S3DData->m_bLoadManual3D = _ttoi(CharToString(pText));
+			}
+		}
+		if (strElement.CompareNoCase(_T("SizeX")) == 0)
+		{
+			S3DData->m_nSizeX = _ttoi(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("SizeY")) == 0)
+		{
+			S3DData->m_nSizeY = _ttoi(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("XResolution")) == 0)
+		{
+			S3DData->m_dXResolution = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("YResolution")) == 0)
+		{
+			S3DData->m_dYResolution = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("Max")) == 0)
+		{
+			S3DData->m_dMax = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("Min")) == 0)
+		{
+			S3DData->m_dMin = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("Avg")) == 0)
+		{
+			S3DData->m_dAvg = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("Stdev")) == 0)
+		{
+			S3DData->m_dStdev = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("ScanStart")) == 0)
+		{
+			S3DData->m_dScanStart = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("ScanEnd")) == 0)
+		{
+			S3DData->m_dScanEnd = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("Tgu")) == 0)
+		{
+			S3DData->m_dTgu = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("Tgd")) == 0)
+		{
+			S3DData->m_dTgd = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("Range")) == 0)
+		{
+			S3DData->m_dRange = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("Ramp")) == 0)
+		{
+			S3DData->m_dRamp = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("MatchingPTX")) == 0)
+		{
+			S3DData->m_dMatchingPTX = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("MatchingPTY")) == 0)
+		{
+			S3DData->m_dMatchingPTY = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("MatchingScale")) == 0)
+		{
+			S3DData->m_dMatchingScale = _ttof(CharToString(pText));
+		}
+		if (strElement.CompareNoCase(_T("MatchingTheta")) == 0)
+		{
+			S3DData->m_dMatchingTheta = _ttof(CharToString(pText));
+		}
+		if (S3DData->m_nVersion > 1)
+		{
+			if (strElement.CompareNoCase(_T("MatchingErode")) == 0)
+			{
+				S3DData->m_dMatchingErode = _ttof(CharToString(pText));
+			}
+		}
+		if (S3DData->m_nVersion > 2)
+		{
+			if (strElement.CompareNoCase(_T("DepthMap")) == 0)
+			{
+				//S3DData->m_matDepthMap = XceedZipControl.ImgUnCompressToMat(pText, MAX_3D_HEIGHT_SIZE, MAX_3D_WIDTH_SIZE, FALSE);
+				S3DData->m_matDepthMap = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, FALSE);
+				m_matrixZ = S3DData->m_matDepthMap.clone();
+			}
+			if (S3DData->m_nVersion > 3)
+			{
+				if (!S3DData->m_bLoadManual3D)
+				{
+					if (strElement.CompareNoCase(_T("Flu")) == 0)
+					{
+						S3DData->m_matFlu = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, TRUE);
+						//S3DData->m_matFlu = XceedZipControl.ImgUnCompressToMat(pText, MAX_JAI_HEIGHT_SIZE, MAX_JAI_WIDTH_SIZE, TRUE);
+					}
+					if (strElement.CompareNoCase(_T("AllDefect")) == 0)
+					{
+						S3DData->m_matAllDefect = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, TRUE);
+						//S3DData->m_matAllDefect = XceedZipControl.ImgUnCompressToMat(pText, MAX_JAI_HEIGHT_SIZE, MAX_JAI_WIDTH_SIZE, TRUE);
+					}
+					if (strElement.CompareNoCase(_T("RefCD")) == 0)
+					{
+						S3DData->m_matRefCD = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, TRUE);
+						//S3DData->m_matRefCD = XceedZipControl.ImgUnCompressToMat(pText, MAX_JAI_HEIGHT_SIZE, MAX_JAI_WIDTH_SIZE, TRUE);
+					}
+					if (strElement.CompareNoCase(_T("RefImg")) == 0)
+					{
+						S3DData->m_matRefImg = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, TRUE);
+						//S3DData->m_matRefImg = XceedZipControl.ImgUnCompressToMat(pText, MAX_JAI_HEIGHT_SIZE, MAX_JAI_WIDTH_SIZE, TRUE);
+					}
+				}
+			}
+			else
+			{
+				if (strElement.CompareNoCase(_T("Flu")) == 0)
+				{
+					S3DData->m_matFlu = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, TRUE);
+					//S3DData->m_matFlu = XceedZipControl.ImgUnCompressToMat(pText, MAX_JAI_HEIGHT_SIZE, MAX_JAI_WIDTH_SIZE, TRUE);
+				}
+				if (strElement.CompareNoCase(_T("AllDefect")) == 0)
+				{
+					S3DData->m_matAllDefect = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, TRUE);
+					//S3DData->m_matAllDefect = XceedZipControl.ImgUnCompressToMat(pText, MAX_JAI_HEIGHT_SIZE, MAX_JAI_WIDTH_SIZE, TRUE);
+				}
+				if (strElement.CompareNoCase(_T("RefCD")) == 0)
+				{
+					S3DData->m_matRefCD = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, TRUE);
+					//S3DData->m_matRefCD = XceedZipControl.ImgUnCompressToMat(pText, MAX_JAI_HEIGHT_SIZE, MAX_JAI_WIDTH_SIZE, TRUE);
+				}
+				if (strElement.CompareNoCase(_T("RefImg")) == 0)
+				{
+					S3DData->m_matRefImg = XceedZipControl.ImgUnCompressToMat(pText, S3DData->m_nSizeY, S3DData->m_nSizeX, TRUE);
+					//S3DData->m_matRefImg = XceedZipControl.ImgUnCompressToMat(pText, MAX_JAI_HEIGHT_SIZE, MAX_JAI_WIDTH_SIZE, TRUE);
+				}
+			}
+		}
+		pSubElement = pSubElement->NextSiblingElement();
+	}
+	if (S3DData->m_nVersion < 4)
+	{
+		S3DData->m_bLoadManual3D = FALSE;
+	}
+	if (S3DData->m_nVersion < 3)
+	{
+		std::string ss = (CT2A(strPath));
+		cv::FileStorage XMLFileRead(ss, cv::FileStorage::READ);
+		XMLFileRead["DepthMap"] >> S3DData->m_matDepthMap;
+		XMLFileRead["Flu"] >> S3DData->m_matFlu;
+		XMLFileRead["AllDefect"] >> S3DData->m_matAllDefect;
+		XMLFileRead["RefCD"] >> S3DData->m_matRefCD;
+		XMLFileRead["RefImg"] >> S3DData->m_matRefImg;
+		XMLFileRead.release();
+	}
+
+	LoadAndSet(strPath);
+	return TRUE;
+}
+
+BOOL CDlg3DViewer::Load3DFile(CString strPath)
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+
+	SSR3DData *S3DData = Get3DData();
+	CString str3DLog;
+	char*szPath = (char*)StringToChar(strPath);
+	BOOL bLoadSuccess = FALSE;
+	CFile file;
+
+	double dReadMotionX, dReadMotionY;
+	int nManualMeas;
+	if (file.Open(strPath, CFile::modeRead))
+	{
+		int nReadSize = 0;
+		file.Read(&S3DData->m_nVersion, sizeof(int));
+		nReadSize += sizeof(int);
+		file.Read(&S3DData->m_nSizeX, sizeof(int));
+		nReadSize += sizeof(int);
+
+		file.Read(&S3DData->m_nSizeY, sizeof(int));
+		nReadSize += sizeof(int);
+
+		file.Read(&S3DData->m_dXResolution, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dYResolution, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dMax, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dMin, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dAvg, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dStdev, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dScanStart, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dScanEnd, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dTgu, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dTgd, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dRange, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dRamp, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dMatchingPTX, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dMatchingPTY, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dMatchingScale, sizeof(double));
+		nReadSize += sizeof(double);
+
+		file.Read(&S3DData->m_dMatchingTheta, sizeof(double));
+		nReadSize += sizeof(double);
+
+		if (S3DData->m_nVersion > 1)
+		{
+			file.Read(&S3DData->m_dMatchingErode, sizeof(double));
+			nReadSize += sizeof(double);
+		}
+
+
+		int nGuardByte = 1024 - nReadSize;
+
+		if (nGuardByte > 0)
+		{
+			int *pDummy = new int[nGuardByte];
+			memset(pDummy, 0, sizeof(int) * nGuardByte);
+			file.Read(pDummy, sizeof(int)*nGuardByte);
+			delete[] pDummy;
+		}
+		int nRows = 0, nCols = 0;
+
+		if (!S3DData->m_matDepthMap.empty())
+		{
+			S3DData->m_matDepthMap.release();
+		}
+
+		if (!S3DData->m_matFlu.empty())
+		{
+			S3DData->m_matFlu.release();
+		}
+
+		if (!S3DData->m_matAllDefect.empty())
+		{
+			S3DData->m_matAllDefect.release();
+		}
+
+		if (!S3DData->m_matRefCD.empty())
+		{
+			S3DData->m_matRefCD.release();
+		}
+
+		if (!S3DData->m_matRefImg.empty())
+		{
+			S3DData->m_matRefImg.release();
+		}
+
+		file.Read(&nCols, sizeof(int));
+		file.Read(&nRows, sizeof(int));
+
+		S3DData->m_matDepthMap = cv::Mat(nRows, nCols, CV_32FC1);
+		S3DData->m_matDepthMap.setTo(0);
+
+		int i = 0;
+		for (i = 0; i < S3DData->m_matDepthMap.rows; i++)
+		{
+			float* ptr = S3DData->m_matDepthMap.ptr<float>(i);
+			file.Read(ptr, sizeof(float)* S3DData->m_matDepthMap.cols);
+		}
+
+		file.Read(&nCols, sizeof(int));
+		file.Read(&nRows, sizeof(int));
+
+		S3DData->m_matFlu = cv::Mat(nRows, nCols, CV_8UC1);
+		S3DData->m_matFlu.setTo(0);
+		for (i = 0; i < S3DData->m_matFlu.rows; i++)
+		{
+			uchar * ptr = S3DData->m_matFlu.ptr<uchar>(i);
+			file.Read(ptr, sizeof(uchar)*S3DData->m_matFlu.cols);
+		}
+
+		file.Read(&nCols, sizeof(int));
+		file.Read(&nRows, sizeof(int));
+
+		S3DData->m_matAllDefect = cv::Mat(nRows, nCols, CV_8UC1);
+
+		S3DData->m_matAllDefect.setTo(0);
+		for (i = 0; i < S3DData->m_matAllDefect.rows; i++)
+		{
+			uchar* ptr = S3DData->m_matAllDefect.ptr<uchar>(i);
+			file.Read(ptr, sizeof(uchar)*S3DData->m_matAllDefect.cols);
+		}
+
+		file.Read(&nCols, sizeof(int));
+		file.Read(&nRows, sizeof(int));
+
+		S3DData->m_matRefCD = cv::Mat(nRows, nCols, CV_8UC1);
+
+		S3DData->m_matRefCD.setTo(0);
+		for (i = 0; i < S3DData->m_matRefCD.rows; i++)
+		{
+			uchar* ptr = S3DData->m_matRefCD.ptr<uchar>(i);
+			file.Read(ptr, sizeof(uchar)*S3DData->m_matRefCD.cols);
+		}
+
+
+		file.Read(&nCols, sizeof(int));
+		file.Read(&nRows, sizeof(int));
+
+		S3DData->m_matRefImg = cv::Mat(nRows, nCols, CV_8UC1);
+		S3DData->m_matRefImg.setTo(0);
+		for (i = 0; i < S3DData->m_matRefImg.rows; i++)
+		{
+			uchar* ptr = S3DData->m_matRefImg.ptr<uchar>(i);
+			file.Read(ptr, sizeof(uchar)* S3DData->m_matRefImg.cols);
+		}
+
+		file.Close();
+		bLoadSuccess = TRUE;
+		S3DData->m_bLoadManual3D = FALSE;
+		str3DLog.Format(_T("Load Success : %s "), strPath);
+		AfxMessageBox(str3DLog);
+	}
+	else
+	{
+		str3DLog.Format(_T("fail load file : %s "), strPath);
+		AfxMessageBox(str3DLog);
+		bLoadSuccess = FALSE;
+	}
+
+	delete szPath;
+
+	return bLoadSuccess;
+}
+
+void CDlg3DViewer::LoadAndSet()
+{
+	SSR3DData* S3DData = Get3DData();
+	S3DData->m_bValid = 1;
+
+	SendMessage(WM_UPDATE_3D_MODEL, 0, 0);
+
+	//m_DefectColor = S3DData->m_matDepthMapColor;
+
+	m_fMax = S3DData->m_dMax;
+	m_fMin = S3DData->m_dMin;
+
+#ifdef SIMULATE
+	CString strPath;
+	cv::Mat mat3D = S3DData->m_matDepthMap.clone();
+	strPath = CGvisAORDoc::m_pAORMasterDoc->m_strData3DFilePath + _T("m_matrixZ.exr");
+	std::string ss = (CT2A(strPath));
+	cv::imwrite(ss, mat3D);
+#endif
+
+	CString strData;
+	strData.Format(_T("%.3f"), m_fMin*1000.0);
+	SetDlgItemText(IDC_EDIT_MIN, strData);
+	strData.Format(_T("%.3f"), m_fMax*1000.0);
+	SetDlgItemText(IDC_EDIT_MAX, strData);
+
+	//PostMessage(WM_COMMAND, IDC_BTN_SCAN);
+	m_bUseCurve = TRUE;
+	m_nSelectDrawType = SHAPE::SHAPE_NONE;
+	Display3D();
+}
+
+void CDlg3DViewer::LoadAndSet(CString sPath)
+{
+	SSR3DData* S3DData = Get3DData();
+
+	CFileFind finder;
+	CString strFind;
+	//m_vec3DFile.clear();
+	//if (bXML)
+	//{
+	//	strFind = m_strLoadFolderPath + _T("\\*.XML");
+	//}
+	//else
+	//{
+	//	strFind = m_strLoadFolderPath + _T("\\*.3D");
+	//}
+	//BOOL bfind = finder.FindFile(strFind);
+
+	//while (bfind)
+	//{
+	//	bfind = finder.FindNextFile();
+	//	if (!finder.IsDots())
+	//	{
+	//		m_vec3DFile.push_back(finder.GetFileName());
+	//	}
+	//}
+
+	//m_b3DLoad = TRUE;
+	S3DData->m_bValid = 1;
+	SendMessage(WM_UPDATE_3D_MODEL, 0, 0);
+
+	//m_DefectColor = S3DData->m_matDepthMapColor;
+
+
+#ifdef SIMULATE
+	CString strPath;
+	cv::Mat mat3D = S3DData->m_matDepthMap.clone();
+	strPath = CGvisAORDoc::m_pAORMasterDoc->m_strData3DFilePath + _T("m_matrixZ.exr");
+	std::string ss = (CT2A(strPath));
+	cv::imwrite(ss, mat3D);
+#endif
+
+	//m_nPrePointX = 0;
+	//m_nPrePointY = 0;
+	//m_nCenterPointX = S3DData->m_matDepthMapColor.cols / 2;
+	//m_nCenterPointY = S3DData->m_matDepthMapColor.rows / 2;
+	//m_fDepthZoomScale = 1;
+	//m_viewer.m_fDepthZoomScale = m_fDepthZoomScale;
+	//m_viewer.m_ptPrePoint.x = m_nPrePointX;
+	//m_viewer.m_ptPrePoint.y = m_nPrePointY;
+
+
+	m_fMax = S3DData->m_dMax;
+	m_fMin = S3DData->m_dMin;
+
+	CString strData;
+	strData.Format(_T("%.3f"), m_fMin*1000.0);
+	SetDlgItemText(IDC_EDIT_MIN, strData);
+	strData.Format(_T("%.3f"), m_fMax*1000.0);// +CGvisAORDoc::m_pAORMasterDoc->m_f3DMaxOffset);
+	SetDlgItemText(IDC_EDIT_MAX, strData);
+
+	//PostMessage(WM_COMMAND, IDC_BTN_SCAN);
+	m_bUseCurve = TRUE;
+	m_nSelectDrawType = SHAPE::SHAPE_NONE;
+	Display3D();
+}
+
+CString CDlg3DViewer::CharToString(char *szStr)
+{
+	CString strRet;
+
+	int nLen = strlen(szStr) + sizeof(char);
+	wchar_t *tszTemp = NULL;
+	tszTemp = new WCHAR[nLen];
+
+	MultiByteToWideChar(CP_ACP, 0, szStr, -1, tszTemp, nLen * sizeof(WCHAR));
+
+	strRet.Format(_T("%s"), (CString)tszTemp);
+	if (tszTemp)
+	{
+		delete[] tszTemp;
+		tszTemp = NULL;
+	}
+	return strRet;
 }
 
 void CDlg3DViewer::Auto3D()

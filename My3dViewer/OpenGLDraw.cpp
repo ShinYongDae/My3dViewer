@@ -2450,7 +2450,7 @@ void COpenGLDraw::DrawAxisXYZ(GLfloat Position_X,GLfloat Position_Y,GLfloat Posi
 	
 	
 	
-	DrawText(_T("X+"),Length+10,0,Position_Z,0.5,0.2,RGB(255,255,0));
+	DrawText(_T("X+"),Length-10,0,Position_Z,0.5,0.2,RGB(255,255,0));
 	DrawText(_T("Y+"),0,Length+10,Position_Z,0.5,0.2,RGB(0,255,0));
 	DrawText(_T("Z+"),0,0,Length+10+Position_Z,0.5,0.2,RGB(0,0,255));
 	//DrawText(_T("X+"),Length+1,0,Position_Z,0.1,0.1,RGB(255,0,0));

@@ -85,6 +85,8 @@ BEGIN_MESSAGE_MAP(CMy3dViewerDlg, CDialog)
 	ON_WM_MOVE()
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_BUTTON2, &CMy3dViewerDlg::OnBnClickedButton2)
+	ON_BN_CLICKED(IDC_BUTTON3, &CMy3dViewerDlg::OnBnClickedButton3)
+	ON_BN_CLICKED(IDC_BUTTON4, &CMy3dViewerDlg::OnBnClickedButton4)
 END_MESSAGE_MAP()
 
 
@@ -122,8 +124,8 @@ BOOL CMy3dViewerDlg::OnInitDialog()
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
 	m_PicColorBar.GetWindowRect(m_rectResult);
 
-	CString sPath = _T("C:\\AorSet\\colors.jpg");
-	//CString sPath = _T("C:\\AorSet\\colorscale_rainbow.jpg");
+	//CString sPath = _T("C:\\AorSet\\colors.jpg");
+	CString sPath = _T("C:\\AorSet\\colorscale_rainbow.jpg");
 	CFileFind cFile;
 	BOOL bExist = cFile.FindFile(sPath);
 	if (!bExist)
@@ -204,8 +206,19 @@ HCURSOR CMy3dViewerDlg::OnQueryDragIcon()
 }
 
 
+TCHAR* CMy3dViewerDlg::StringToTCHAR(CString str)
+{
+	TCHAR *tszStr = NULL;
+	int nLen = str.GetLength() + 1;
+	tszStr = new TCHAR[nLen];
+	memset(tszStr, 0x00, nLen * sizeof(TCHAR));
+	_tcscpy(tszStr, str);
 
-BOOL CMy3dViewerDlg::FileBrowse(CString& sPath)
+	return tszStr;
+}
+
+
+BOOL CMy3dViewerDlg::FileBrowse(CString& sPath, CString sType)
 {
 	sPath = _T("");
 
@@ -226,10 +239,12 @@ BOOL CMy3dViewerDlg::FileBrowse(CString& sPath)
 	// File Open Filter 
 	//static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.datx)|*.datx|All Files (*.*)|*.*||");
 	//static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.xyz)|*.xyz|All Files (*.*)|*.*||");
-	static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.datx)|*.datx|3D Files (*.xyz)|*.xyz|All Files (*.*)|*.*||");
+	//static TCHAR BASED_CODE szFilter[] = _T("3D Files (*.datx)|*.datx|3D Files (*.xyz)|*.xyz|All Files (*.*)|*.*||");
+	TCHAR* szFilter = StringToTCHAR(sType);
 
 	// CFileDialog 
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, NULL);
+	delete szFilter;
 
 	// Win2k Style FileDialog Box
 	dlg.m_ofn.lStructSize = sizeof(OPENFILENAME) + 12; // +12를 Win2k Style로 다이얼로그 박스가 Open됨.
@@ -257,7 +272,7 @@ void CMy3dViewerDlg::OnBnClickedButton1()
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	CString sPath;
 
-	if (!FileBrowse(sPath))
+	if (!FileBrowse(sPath, _T("3D Files (*.datx)|*.datx|3D Files (*.xyz)|*.xyz|All Files (*.*)|*.*||")))
 		return;
 	GetDlgItem(IDC_STATIC_PATH)->SetWindowText(sPath);
 
@@ -463,4 +478,81 @@ void CMy3dViewerDlg::OnBnClickedButton2()
 	float fMin, fMax;
 	GetMinMax(fMin, fMax);
 	m_viewer.AdjustRange(fMin, fMax);
+}
+
+
+void CMy3dViewerDlg::OnBnClickedButton3()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	CString sPath;
+	GetDlgItemText(IDC_STATIC_PATH, sPath);
+	if (sPath.IsEmpty())
+	{
+		AfxMessageBox(_T("IDC_STATIC_PATH 존재하지 않음."));
+		return;
+	}
+
+	CFileFind cFile;
+	BOOL bExist = cFile.FindFile(sPath);
+	if (!bExist)
+	{
+		AfxMessageBox(_T("파일이 존재하지 않음."));
+		return; // 파일이 존재하지 않음.
+	}
+
+	CString sFileName;
+
+	int nPos = sPath.ReverseFind('.');
+	if (nPos > 0)
+	{
+		sFileName = sPath.Left(nPos);
+		nPos = sFileName.ReverseFind('\\');
+		if (nPos > 0)
+		{
+			sFileName = sFileName.Right(sFileName.GetLength() - nPos - 1);
+		}
+		else
+		{
+			AfxMessageBox(_T("경로상에서 파일명 Parsing 오류."));
+			return;
+		}
+	}
+	else
+	{
+		AfxMessageBox(_T("경로상에서 확장명 Parsing 오류."));
+		return;
+	}
+
+	sPath.Format(_T("C:\\AorSet\\xml\\%s.xml"), sFileName);
+	m_viewer.SaveXMLCompress3D(sPath);
+	CString sMsg;
+	sMsg.Format(_T("%s 저장완료."),sPath);
+	AfxMessageBox(sMsg);
+}
+
+
+void CMy3dViewerDlg::OnBnClickedButton4()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	CString sPath;
+
+	if (!FileBrowse(sPath, _T("XML Files (*.xml)|*.xml|All Files (*.*)|*.*||")))
+		return;
+	GetDlgItem(IDC_STATIC_PATH)->SetWindowText(sPath);
+
+	CString sData = _T("");
+	CFileFind	find;
+	if (!find.FindFile(sPath))
+	{
+		AfxMessageBox(_T("Error : 파일을 찾지못했습니다."));
+		return;
+	}
+
+	//if (m_viewer.Load3DFile(sPath))
+	//{
+	//	m_viewer.LoadAndSet();
+	//	AfxMessageBox(_T("Complete loading XML File."));
+	//}
+	if(m_viewer.LoadXMLCompress3D(sPath))
+		AfxMessageBox(_T("Complete loading XML File."));
 }

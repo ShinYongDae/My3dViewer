@@ -7,6 +7,12 @@
 #include "Matching.h"
 #include "afxwin.h"
 
+#define MAX_3D_HEIGHT_SIZE					293
+#define MAX_3D_WIDTH_SIZE					281
+#define MAX_JAI_HEIGHT_SIZE					2048
+#define MAX_JAI_WIDTH_SIZE					2448
+
+
 // CDlg3DViewer 대화 상자입니다.
 struct stTagZygoXYZ
 {
@@ -62,6 +68,7 @@ class CDlg3DViewer : public CDialog
 	void StringToTCHAR(CString str, TCHAR* tszStr);
 	void RemoveAllZygoXYZ();
 	char* StringToChar(CString str);
+	CString CharToString(char *szStr);
 	BOOL IsFileDatx(CString sPath);
 	BOOL IsFileXYZ(CString sPath);
 
@@ -114,6 +121,12 @@ public:
 	void GetMinMax(float& fMin, float& fMax);
 	void SetMinMax(float fMin, float fMax);
 	void AdjustRange(float fMin, float fMax);
+	void SaveXMLCompress3D(CString strPath);
+	BOOL LoadXMLCompress3D(CString strPath);
+	BOOL Load3DFile(CString strPath);
+	void LoadAndSet();
+	void LoadAndSet(CString sPath);
+
 public:
 	LRESULT OnUpdate3DModel(WPARAM wParam, LPARAM lParam);
 	LRESULT OnGLRender(WPARAM wParam, LPARAM lParam);
